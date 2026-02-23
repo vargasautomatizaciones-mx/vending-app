@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { machineService } from '../services/machineService';
 import { companyService } from '../services/companyService';
 import { inventoryService } from '../services/inventoryService';
@@ -25,32 +26,39 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     const login = async (username, password, companyId) => {
-        // SuperAdmin check (remains local for initial setup or could be moved to cloud)
-        if (username === 'superadmin' && password === 'master2024') {
-            const superUser = { username: 'superadmin', role: 'superadmin', name: 'Master Control', companyId: 'master' };
-            setUser(superUser);
-            return { success: true };
-        }
+        try {
+            // Query users table for the given identifying info (email or username)
+            const { data: userRecord, error } = await supabase
+                .from('users')
+                .select('*')
+                .or(`email.eq.${username},username.eq.${username}`)
+                .eq('password', password) // In production, use hashed passwords!
+                .single();
 
-        // Standard company check (In a real app, this would query a 'users' table in Supabase)
-        // For this final delivery, we check against the configured passwords in Supabase (if implemented)
-        // or use the logic from the user prompt for multi-company.
+            if (error || !userRecord) {
+                return { success: false, message: 'Credenciales inválidas o usuario no encontrado' };
+            }
 
-        // Mocking the cloud verification for now as we don't have a 'users' table yet
-        // but we ensure the companyId is valid in the cloud
-        if (!companyId) return { success: false, message: 'ID de empresa requerido' };
+            // For non-superadmins, verify they belong to the selected company
+            if (userRecord.role !== 'superadmin' && companyId && userRecord.company_id !== companyId) {
+                return { success: false, message: 'No tienes acceso a esta empresa' };
+            }
 
-        if (username === 'chofer1' && password === 'ruta2024') {
-            const userData = { username: 'chofer1', role: 'driver', name: 'Chofer', companyId };
+            const userData = {
+                id: userRecord.id,
+                username: userRecord.username || userRecord.email,
+                email: userRecord.email,
+                role: userRecord.role,
+                name: userRecord.name,
+                companyId: userRecord.company_id || 'master'
+            };
+
             setUser(userData);
             return { success: true };
-        } else if (username === 'admin' && password === 'ruta2024') {
-            const userData = { username: 'admin', role: 'admin', name: 'Administrador', companyId };
-            setUser(userData);
-            return { success: true };
+        } catch (err) {
+            console.error('Login error:', err);
+            return { success: false, message: 'Error de conexión con el servidor' };
         }
-
-        return { success: false, message: 'Credenciales inválidas' };
     };
 
     const logout = () => {
