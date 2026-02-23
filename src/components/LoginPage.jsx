@@ -107,13 +107,15 @@ const LoginPage = () => {
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Usuario</label>
-                            <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
+                        <div className="space-y-3">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Usuario</label>
+                            <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors group-focus-within:text-blue-500 text-slate-500">
+                                    <User className="w-5 h-5" />
+                                </div>
                                 <input
-                                    className="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                                    placeholder={showSuperAdmin ? "Master ID" : "admin o chofer1"}
+                                    className="w-full bg-slate-900/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none ring-0 focus:border-blue-500/50 focus:bg-slate-900 transition-all placeholder:text-slate-600"
+                                    placeholder={showSuperAdmin ? "Correo o superadmin" : "admin o chofer1"}
                                     value={credentials.username}
                                     onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                                     required
@@ -121,13 +123,15 @@ const LoginPage = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Contraseña</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
+                        <div className="space-y-3">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Contraseña</label>
+                            <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors group-focus-within:text-blue-500 text-slate-500">
+                                    <Lock className="w-5 h-5" />
+                                </div>
                                 <input
                                     type="password"
-                                    className="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                                    className="w-full bg-slate-900/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none ring-0 focus:border-blue-500/50 focus:bg-slate-900 transition-all font-mono placeholder:text-slate-600"
                                     placeholder="••••••••"
                                     value={credentials.password}
                                     onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
