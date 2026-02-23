@@ -27,20 +27,37 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password, companyId) => {
         try {
-            // Query users table for the given identifying info (email or username)
-            const { data: userRecord, error } = await supabase
+            const cleanUsername = username.trim();
+            const cleanPassword = password.trim();
+
+            // Try to find by email first
+            let { data: userRecord, error } = await supabase
                 .from('users')
                 .select('*')
-                .or(`email.eq.${username},username.eq.${username}`)
-                .eq('password', password) // In production, use hashed passwords!
-                .single();
+                .eq('email', cleanUsername)
+                .eq('password', cleanPassword)
+                .maybeSingle();
+
+            // If not found by email, try by username
+            if (!userRecord && !error) {
+                const { data: userByUsername, error: userError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('username', cleanUsername)
+                    .eq('password', cleanPassword)
+                    .maybeSingle();
+
+                userRecord = userByUsername;
+                if (userError) console.error("Username query error:", userError);
+            }
 
             if (error || !userRecord) {
+                console.error('Login attempt failed for:', cleanUsername, error);
                 return { success: false, message: 'Credenciales inválidas o usuario no encontrado' };
             }
 
             // For non-superadmins, verify they belong to the selected company
-            if (userRecord.role !== 'superadmin' && companyId && userRecord.company_id !== companyId) {
+            if (userRecord.role !== 'superadmin' && companyId && companyId !== 'master' && userRecord.company_id !== companyId) {
                 return { success: false, message: 'No tienes acceso a esta empresa' };
             }
 
@@ -56,7 +73,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             return { success: true };
         } catch (err) {
-            console.error('Login error:', err);
+            console.error('System login error:', err);
             return { success: false, message: 'Error de conexión con el servidor' };
         }
     };

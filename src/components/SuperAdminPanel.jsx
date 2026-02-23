@@ -217,10 +217,18 @@ const SuperAdminPanel = () => {
 
             {/* Create Company Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Solid Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/95 backdrop-blur-md"
+                        onClick={() => setIsCreateModalOpen(false)}
+                    />
+
+                    {/* Form Container with solid background */}
                     <form
                         onSubmit={handleCreateCompany}
-                        className="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 border border-slate-100"
+                        className="relative z-[110] bg-white w-full max-w-sm rounded-[40px] p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 border-4 border-slate-100"
+                        style={{ backgroundColor: 'white', opacity: 1 }}
                     >
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-2xl font-black text-slate-900">Nueva Cuenta</h3>
@@ -237,11 +245,12 @@ const SuperAdminPanel = () => {
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Nombre Comercial</label>
                                 <input
-                                    className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all mb-2"
+                                    className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all mb-2"
                                     placeholder="Ej: Snacks S.A."
                                     value={newCompany.name}
                                     onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
                                     required
+                                    style={{ backgroundColor: '#f8fafc' }}
                                 />
                             </div>
 
@@ -249,19 +258,22 @@ const SuperAdminPanel = () => {
                                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Correo de Contacto</label>
                                 <input
                                     type="email"
-                                    className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                                    className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                                     placeholder="admin@empresa.com"
                                     value={newCompany.contact}
                                     onChange={(e) => setNewCompany({ ...newCompany, contact: e.target.value })}
                                     required
+                                    style={{ backgroundColor: '#f8fafc' }}
                                 />
-                                <p className="text-[10px] text-slate-400 font-bold italic pl-1">Se creará un usuario administrador automáticamente.</p>
+                                <p className="text-[10px] text-slate-500 font-bold italic pl-1 leading-relaxed mt-2">
+                                    Se creará un usuario administrador automáticamente para este correo.
+                                </p>
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-3xl font-black shadow-xl shadow-blue-500/30 active:scale-[0.98] transition-all mt-4 flex items-center justify-center space-x-2 disabled:bg-slate-400"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-3xl font-black shadow-xl shadow-blue-500/40 active:scale-[0.98] transition-all mt-4 flex items-center justify-center space-x-2 disabled:bg-slate-400"
                             >
                                 {loading ? (
                                     <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
