@@ -27,8 +27,12 @@ const LoginPage = () => {
 
     useEffect(() => {
         const fetchCompanies = async () => {
-            const data = await companyService.getCompanies();
-            setCompanies(data);
+            try {
+                const data = await companyService.getCompanies();
+                setCompanies(data || []);
+            } catch (err) {
+                console.error("Error loading companies", err);
+            }
         };
         fetchCompanies();
     }, []);
@@ -40,8 +44,8 @@ const LoginPage = () => {
 
         try {
             const result = await login(
-                credentials.username,
-                credentials.password,
+                credentials.username.trim(),
+                credentials.password.trim(),
                 showSuperAdmin ? 'master' : credentials.companyId
             );
 
@@ -55,33 +59,30 @@ const LoginPage = () => {
                 setError(result.message);
             }
         } catch (err) {
-            setError('Error al conectar con el sistema');
+            setError('Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans relative overflow-hidden">
-            {/* Visual background elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-slate-800/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
-
-            <div className="w-full max-w-sm z-10">
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-[30px] shadow-2xl shadow-blue-500/20 mb-6 rotate-12">
-                        <Coffee className="w-10 h-10 text-white -rotate-12" />
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+            <div className="w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-200">
+                {/* Header Section with clean background */}
+                <div className="bg-slate-900 p-8 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
+                        <Coffee className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">Vending Logistics</h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-2">
-                        {showSuperAdmin ? 'Panel de Control Maestro' : 'Gestión de Flota Profesional'}
+                    <h1 className="text-2xl font-black text-white">Vending Logistics</h1>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
+                        {showSuperAdmin ? 'Panel Maestro de Control' : 'Sistema de Gestión de Flota'}
                     </p>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-[40px] p-8 shadow-2xl">
+                <div className="p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center space-x-3 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl flex items-center space-x-3 text-red-700 text-sm font-bold animate-in fade-in">
                                 <AlertCircle className="w-5 h-5 shrink-0" />
                                 <span>{error}</span>
                             </div>
@@ -89,33 +90,31 @@ const LoginPage = () => {
 
                         {!showSuperAdmin && (
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">ID Empresa</label>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">ID Empresa</label>
                                 <div className="relative">
-                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
+                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <select
-                                        className="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white font-bold appearance-none outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 pl-12 pr-4 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none cursor-pointer"
                                         value={credentials.companyId}
                                         onChange={(e) => setCredentials({ ...credentials, companyId: e.target.value })}
                                         required
                                     >
-                                        <option value="" className="bg-slate-900">-- Seleccionar --</option>
+                                        <option value="">Seleccionar Empresa</option>
                                         {companies.map(c => (
-                                            <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
+                                            <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
                                     </select>
                                 </div>
                             </div>
                         )}
 
-                        <div className="space-y-3">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Usuario</label>
-                            <div className="relative group">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors group-focus-within:text-blue-500 text-slate-500">
-                                    <User className="w-5 h-5" />
-                                </div>
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuario</label>
+                            <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input
-                                    className="w-full bg-slate-900/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none ring-0 focus:border-blue-500/50 focus:bg-slate-900 transition-all placeholder:text-slate-600"
-                                    placeholder={showSuperAdmin ? "Correo o superadmin" : "admin o chofer1"}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 pl-12 pr-4 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300"
+                                    placeholder={showSuperAdmin ? "Correo electrónico" : "admin o chofer1"}
                                     value={credentials.username}
                                     onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                                     required
@@ -123,15 +122,13 @@ const LoginPage = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Contraseña</label>
-                            <div className="relative group">
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors group-focus-within:text-blue-500 text-slate-500">
-                                    <Lock className="w-5 h-5" />
-                                </div>
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contraseña</label>
+                            <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input
                                     type="password"
-                                    className="w-full bg-slate-900/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold outline-none ring-0 focus:border-blue-500/50 focus:bg-slate-900 transition-all font-mono placeholder:text-slate-600"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 pl-12 pr-4 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono placeholder:text-slate-300"
                                     placeholder="••••••••"
                                     value={credentials.password}
                                     onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
@@ -143,7 +140,7 @@ const LoginPage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-3xl font-black shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 disabled:bg-slate-400 disabled:shadow-none"
                         >
                             {loading ? (
                                 <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -156,19 +153,19 @@ const LoginPage = () => {
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-8 border-t border-white/5 text-center">
+                    <div className="mt-8 pt-6 border-t border-slate-100">
                         <button
                             onClick={() => setShowSuperAdmin(!showSuperAdmin)}
-                            className="text-[10px] font-black text-slate-600 hover:text-blue-500 uppercase tracking-widest transition-colors flex items-center justify-center space-x-2 mx-auto"
+                            className="w-full py-3 text-[10px] font-black text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl uppercase tracking-widest transition-all flex items-center justify-center space-x-2"
                         >
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>{showSuperAdmin ? 'Volver a Login de Empresa' : 'Acceso SuperAdmin'}</span>
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>{showSuperAdmin ? 'Volver a Login de Empresa' : 'Acceso SuperAdmin Maestro'}</span>
                         </button>
                     </div>
                 </div>
 
-                <div className="mt-12 text-center">
-                    <p className="text-slate-600 text-[10px] font-black uppercase tracking-widest">
+                <div className="bg-slate-50 p-4 border-t border-slate-100 text-center">
+                    <p className="text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em]">
                         Powered by Antigravity OS &copy; 2026
                     </p>
                 </div>
