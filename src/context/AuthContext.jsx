@@ -30,42 +30,39 @@ export const AuthProvider = ({ children }) => {
             const cleanUsername = username.trim();
             const cleanPassword = password.trim();
 
-            // Try to find by email first
-            console.log('--- Intentando Login ---');
-            console.log('Buscando email:', cleanUsername);
+            console.log('--- DIAGNÓSTICO DE LOGIN ---');
+            console.log('1. Intentando buscar usuario:', cleanUsername);
 
-            let { data: userRecord, error } = await supabase
+            // Fetch user first without password constraint to see if they exist
+            const { data: users, error: dbError } = await supabase
                 .from('users')
                 .select('*')
-                .eq('email', cleanUsername)
-                .eq('password', cleanPassword)
-                .maybeSingle();
+                .or(`email.ilike.${cleanUsername},username.ilike.${cleanUsername}`);
 
-            if (error) console.error("Error en query de email:", error);
-
-            // If not found by email, try by username
-            if (!userRecord && !error) {
-                console.log('No encontrado por email, buscando por username...');
-                const { data: userByUsername, error: userError } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('username', cleanUsername)
-                    .eq('password', cleanPassword)
-                    .maybeSingle();
-
-                userRecord = userByUsername;
-                if (userError) console.error("Error en query de username:", userError);
+            if (dbError) {
+                console.error("2. ERROR DE BASE DE DATOS:", dbError);
+                return { success: false, message: `Error DB: ${dbError.message}` };
             }
 
-            if (error || !userRecord) {
-                console.warn('Login FALLIDO: Usuario no encontrado en tabla users');
-                return { success: false, message: 'Credenciales inválidas o usuario no encontrado' };
+            if (!users || users.length === 0) {
+                console.warn('2. RESULTADO: Usuario no encontrado en la tabla "users"');
+                return { success: false, message: 'Usuario no encontrado' };
             }
 
-            console.log('Login EXITOSO para:', userRecord.email, 'Rol:', userRecord.role);
+            console.log(`2. RESULTADO: Se encontraron ${users.length} coincidencia(s)`);
 
-            // For non-superadmins, verify they belong to the selected company
-            if (userRecord.role !== 'superadmin' && companyId && companyId !== 'master' && userRecord.company_id !== companyId) {
+            // Validate password in JS for better debugging
+            const match = users.find(u => u.password === cleanPassword);
+
+            if (!match) {
+                console.warn('3. VALIDACIÓN: Contraseña INCORRECTA');
+                return { success: false, message: 'Contraseña incorrecta' };
+            }
+
+            console.log('3. VALIDACIÓN: ÉXITO. Bienvenido', match.name);
+
+            // For non-superadmins, verify company
+            if (match.role !== 'superadmin' && companyId && companyId !== 'master' && match.company_id !== companyId) {
                 return { success: false, message: 'No tienes acceso a esta empresa' };
             }
 
