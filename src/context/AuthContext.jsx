@@ -31,6 +31,9 @@ export const AuthProvider = ({ children }) => {
             const cleanPassword = password.trim();
 
             // Try to find by email first
+            console.log('--- Intentando Login ---');
+            console.log('Buscando email:', cleanUsername);
+
             let { data: userRecord, error } = await supabase
                 .from('users')
                 .select('*')
@@ -38,8 +41,11 @@ export const AuthProvider = ({ children }) => {
                 .eq('password', cleanPassword)
                 .maybeSingle();
 
+            if (error) console.error("Error en query de email:", error);
+
             // If not found by email, try by username
             if (!userRecord && !error) {
+                console.log('No encontrado por email, buscando por username...');
                 const { data: userByUsername, error: userError } = await supabase
                     .from('users')
                     .select('*')
@@ -48,13 +54,15 @@ export const AuthProvider = ({ children }) => {
                     .maybeSingle();
 
                 userRecord = userByUsername;
-                if (userError) console.error("Username query error:", userError);
+                if (userError) console.error("Error en query de username:", userError);
             }
 
             if (error || !userRecord) {
-                console.error('Login attempt failed for:', cleanUsername, error);
+                console.warn('Login FALLIDO: Usuario no encontrado en tabla users');
                 return { success: false, message: 'Credenciales inválidas o usuario no encontrado' };
             }
+
+            console.log('Login EXITOSO para:', userRecord.email, 'Rol:', userRecord.role);
 
             // For non-superadmins, verify they belong to the selected company
             if (userRecord.role !== 'superadmin' && companyId && companyId !== 'master' && userRecord.company_id !== companyId) {
