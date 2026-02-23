@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { companyService } from '../services/companyService';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabaseClient';
 
 const SuperAdminPanel = () => {
     const navigate = useNavigate();
@@ -23,6 +24,7 @@ const SuperAdminPanel = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCompany, setNewCompany] = useState({ name: '', contact: '' });
+    const [loading, setLoading] = useState(false);
 
     const fetchCompanies = async () => {
         const data = await companyService.getCompanies();
@@ -45,11 +47,37 @@ const SuperAdminPanel = () => {
 
     const handleCreateCompany = async (e) => {
         e.preventDefault();
-        if (newCompany.name) {
-            await companyService.addCompany(newCompany);
-            fetchCompanies();
+        if (!newCompany.name || !newCompany.contact) return;
+
+        setLoading(true);
+        try {
+            // 1. Create Company
+            const result = await companyService.addCompany(newCompany);
+
+            if (result && result[0]) {
+                const companyId = result[0].id;
+
+                // 2. Create Initial Admin User for this company
+                const { error: userError } = await supabase.from('users').insert([{
+                    email: newCompany.contact,
+                    password: 'admin' + Math.floor(1000 + Math.random() * 9000), // Random temp password
+                    role: 'admin',
+                    company_id: companyId,
+                    name: `Administrador ${newCompany.name}`
+                }]);
+
+                if (userError) throw userError;
+            }
+
+            await fetchCompanies();
             setIsCreateModalOpen(false);
             setNewCompany({ name: '', contact: '' });
+            alert('Empresa y Usuario Admin creados exitosamente');
+        } catch (error) {
+            console.error("Error creating company:", error);
+            alert('Error al crear la empresa');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -189,38 +217,60 @@ const SuperAdminPanel = () => {
 
             {/* Create Company Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-                    <form onSubmit={handleCreateCompany} className="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl animate-in fade-in zoom-in-95">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
+                    <form
+                        onSubmit={handleCreateCompany}
+                        className="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 border border-slate-100"
+                    >
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-2xl font-black text-slate-900">Nueva Cuenta</h3>
-                            <button type="button" onClick={() => setIsCreateModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                            >
                                 <Plus className="w-6 h-6 rotate-45 text-slate-400" />
                             </button>
                         </div>
+
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nombre Comercial</label>
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Nombre Comercial</label>
                                 <input
-                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all mb-2"
                                     placeholder="Ej: Snacks S.A."
                                     value={newCompany.name}
                                     onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
                                     required
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Correo de Contacto</label>
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Correo de Contacto</label>
                                 <input
                                     type="email"
-                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                                     placeholder="admin@empresa.com"
                                     value={newCompany.contact}
                                     onChange={(e) => setNewCompany({ ...newCompany, contact: e.target.value })}
                                     required
                                 />
+                                <p className="text-[10px] text-slate-400 font-bold italic pl-1">Se creará un usuario administrador automáticamente.</p>
                             </div>
-                            <button className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black shadow-xl active:scale-95 transition-all mt-4">
-                                Crear y Habilitar
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-3xl font-black shadow-xl shadow-blue-500/30 active:scale-[0.98] transition-all mt-4 flex items-center justify-center space-x-2 disabled:bg-slate-400"
+                            >
+                                {loading ? (
+                                    <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <>
+                                        <span>Crear y Habilitar</span>
+                                        <ChevronRight className="w-5 h-5" />
+                                    </>
+                                )}
                             </button>
                         </div>
                     </form>
