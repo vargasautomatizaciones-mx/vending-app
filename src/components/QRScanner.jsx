@@ -77,8 +77,8 @@ const QRScanner = () => {
 
     return (
         <div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans">
-            {/* Dark Header */}
-            <header className="p-6 flex items-center shrink-0 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 border-b border-white/5">
+            {/* Dark Header - 100% Opaque */}
+            <header className="p-6 flex items-center shrink-0 bg-slate-900 sticky top-0 z-30 border-b border-white/10">
                 <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full mr-2 transition-colors">
                     <ArrowLeft className="w-6 h-6" />
                 </button>
