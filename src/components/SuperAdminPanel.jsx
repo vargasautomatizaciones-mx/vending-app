@@ -216,7 +216,10 @@ const SuperAdminPanel = () => {
                                                     >
                                                         <Power className="w-4 h-4" />
                                                     </button>
-                                                    <button className="p-3 bg-slate-50 border-2 border-slate-100 text-slate-400 rounded-2xl hover:bg-slate-100 hover:border-slate-200 transition-all shadow-sm">
+                                                    <button
+                                                        onClick={() => alert('Configuración avanzada de empresa: Próximamente')}
+                                                        className="p-3 bg-slate-50 border-2 border-slate-100 text-slate-400 rounded-2xl hover:bg-slate-100 hover:border-slate-200 transition-all shadow-sm"
+                                                    >
                                                         <Settings className="w-4 h-4" />
                                                     </button>
                                                 </div>
