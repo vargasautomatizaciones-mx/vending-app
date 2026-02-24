@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { machineService } from '../services/machineService';
+import { useAuth } from '../context/AuthContext';
 
 const ManageMachines = () => {
     const navigate = useNavigate();
@@ -22,6 +23,7 @@ const ManageMachines = () => {
     const [editingMachine, setEditingMachine] = useState(null);
     const [selectedMachineQR, setSelectedMachineQR] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const { user } = useAuth();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -93,7 +95,7 @@ const ManageMachines = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans pb-12">
+        <div className="min-h-screen bg-white font-sans pb-12">
             <header className="bg-white border-b border-slate-200 p-6 sticky top-0 z-20">
                 <div className="max-w-md mx-auto flex items-center justify-between">
                     <div className="flex items-center">
