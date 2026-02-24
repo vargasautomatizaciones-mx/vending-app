@@ -36,7 +36,7 @@ const OwnerReports = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans pb-12">
+        <div className="min-h-screen bg-white font-sans pb-12">
             {/* Header */}
             <header className="bg-white border-b border-slate-200 p-6 sticky top-0 z-20">
                 <div className="max-w-md mx-auto flex items-center justify-between">

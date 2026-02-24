@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -12,12 +12,14 @@ import {
 import { inventoryService } from '../services/inventoryService';
 import { machineService } from '../services/machineService';
 import { historyService } from '../services/historyService';
+import { useAuth } from '../context/AuthContext';
 
 const MachineDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [isSaving, setIsSaving] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const { user } = useAuth();
 
     // State para el formulario
     const [formData, setFormData] = useState({
@@ -130,7 +132,7 @@ const MachineDetails = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans pb-32">
+        <div className="min-h-screen bg-white font-sans pb-32">
             <header className="bg-white border-b border-slate-200 p-6 sticky top-0 z-20">
                 <div className="max-w-md mx-auto flex items-center">
                     <button onClick={() => navigate('/ruta-chofer')} className="p-2 hover:bg-slate-100 rounded-full mr-2 transition-colors text-slate-600">
