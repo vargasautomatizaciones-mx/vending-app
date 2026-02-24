@@ -13,6 +13,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
+import { useAuth } from '../context/AuthContext';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const WarehouseInventory = () => {
@@ -24,6 +25,8 @@ const WarehouseInventory = () => {
     const [amount, setAmount] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
 
     const html5QrCodeRef = useRef(null);
     const scannerId = "vending-scanner-id";
@@ -31,9 +34,18 @@ const WarehouseInventory = () => {
     const { user } = useAuth();
 
     const fetchInventory = async () => {
-        if (user?.companyId) {
+        if (!user?.companyId) return;
+
+        try {
+            setLoading(true);
+            setFetchError(null);
             const data = await inventoryService.getInventory(user.companyId);
-            setInventory(data);
+            setInventory(data || []);
+        } catch (err) {
+            console.error('Error fetching inventory:', err);
+            setFetchError('No se pudo cargar el inventario. Verifica tu conexión.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -137,7 +149,7 @@ const WarehouseInventory = () => {
 
     // --- SUB-COMPONENT: LIST VIEW ---
     const ListView = () => (
-        <div className="min-h-screen bg-slate-50 flex flex-col relative w-full overflow-x-hidden">
+        <div className="min-h-screen bg-white flex flex-col relative w-full overflow-x-hidden">
             <header className="bg-white border-b border-slate-200 p-4 sticky top-0 z-10 w-full shadow-sm">
                 <div className="max-w-xl mx-auto flex items-center">
                     <button onClick={() => navigate('/')} className="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-full">
@@ -159,24 +171,48 @@ const WarehouseInventory = () => {
 
                 <div className="space-y-3">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Existencias Actuales</h3>
-                    <div className="grid gap-3">
-                        {inventory?.map((item) => (
-                            <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-50">
-                                        <Package className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 text-base">{item.name}</h4>
-                                        <span className="text-[10px] text-slate-300 font-mono tracking-tighter uppercase">ID: {item.id}</span>
-                                    </div>
-                                </div>
-                                <div className="bg-slate-900 text-white min-w-[60px] h-12 flex items-center justify-center rounded-2xl shadow-inner px-2">
-                                    <span className="text-xl font-black">{item.quantity}</span>
-                                </div>
+
+                    {loading ? (
+                        <div className="py-20 text-center">
+                            <RefreshCcw className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
+                            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Cargando Almacén...</p>
+                        </div>
+                    ) : fetchError ? (
+                        <div className="bg-red-50 p-8 rounded-[32px] border-2 border-red-100 text-center space-y-4">
+                            <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+                            <p className="text-red-900 font-black uppercase text-xs">{fetchError}</p>
+                            <button onClick={fetchInventory} className="bg-red-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Reintentar</button>
+                        </div>
+                    ) : inventory.length === 0 ? (
+                        <div className="bg-slate-50 p-12 rounded-[40px] border-2 border-dashed border-slate-200 text-center space-y-4">
+                            <Package className="w-16 h-16 text-slate-200 mx-auto" />
+                            <div>
+                                <h4 className="text-slate-900 font-black uppercase text-sm">Almacén Vacío</h4>
+                                <p className="text-slate-400 text-xs font-bold mt-1">Usa el botón de abajo para agregar mercancía.</p>
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="grid gap-3">
+                            {inventory.map((item) => (
+                                <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:border-blue-100 transition-colors">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-50">
+                                            <Package className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-base">{item.name}</h4>
+                                            <span className="text-[10px] text-slate-300 font-mono tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis block max-w-[150px]">
+                                                {item.barcode || 'N/A'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-900 text-white min-w-[60px] h-12 flex items-center justify-center rounded-2xl shadow-inner px-3">
+                                        <span className="text-xl font-black">{item.quantity}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
 
