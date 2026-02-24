@@ -67,12 +67,12 @@ export const AuthProvider = ({ children }) => {
             }
 
             const userData = {
-                id: userRecord.id,
-                username: userRecord.username || userRecord.email,
-                email: userRecord.email,
-                role: userRecord.role,
-                name: userRecord.name,
-                companyId: userRecord.company_id || 'master'
+                id: match.id,
+                username: match.username || match.email,
+                email: match.email,
+                role: match.role,
+                name: match.name,
+                companyId: match.company_id || 'master'
             };
 
             setUser(userData);
