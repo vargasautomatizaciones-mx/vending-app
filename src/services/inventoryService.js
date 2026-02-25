@@ -31,23 +31,50 @@ export const inventoryService = {
     },
 
     updateStock: async (id, amount, companyId) => {
-        // Get current stock
-        const { data: current } = await supabase
-            .from(INVENTORY_TABLE)
-            .select('quantity')
-            .eq('id', id)
-            .single();
+        // If id is a barcode (string) and not a UUID, we might need to search by barcode first
+        let product;
 
-        const newQuantity = (current?.quantity || 0) + amount;
+        if (typeof id === 'string' && id.length < 30) { // Likely a barcode
+            const { data } = await supabase
+                .from(INVENTORY_TABLE)
+                .select('*')
+                .eq('barcode', id)
+                .single();
+            product = data;
+        } else {
+            const { data } = await supabase
+                .from(INVENTORY_TABLE)
+                .select('*')
+                .eq('id', id)
+                .single();
+            product = data;
+        }
 
-        const { data, error } = await supabase
-            .from(INVENTORY_TABLE)
-            .update({ quantity: newQuantity })
-            .eq('id', id)
-            .select();
-
-        if (error) throw error;
-        return data[0];
+        if (product) {
+            // Update existing
+            const newQuantity = (product.quantity || 0) + amount;
+            const { data, error } = await supabase
+                .from(INVENTORY_TABLE)
+                .update({ quantity: newQuantity })
+                .eq('id', product.id)
+                .select();
+            if (error) throw error;
+            return data[0];
+        } else {
+            // Insert new product if it was a barcode
+            const { data, error } = await supabase
+                .from(INVENTORY_TABLE)
+                .insert({
+                    name: `Producto ${id}`,
+                    barcode: id,
+                    quantity: amount,
+                    company_id: companyId,
+                    category: 'GENERAL'
+                })
+                .select();
+            if (error) throw error;
+            return data[0];
+        }
     },
 
     deductStock: async (deductions, companyId) => {

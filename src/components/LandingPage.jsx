@@ -11,9 +11,9 @@ const LandingPage = () => {
 
     useEffect(() => {
         const fetchAlerts = async () => {
-            if (user?.role === 'admin') {
+            if (user?.role === 'admin' || user?.role === 'superadmin') {
                 const data = await historyService.getLowStockAlerts(user.companyId);
-                setAlerts(data);
+                setAlerts(data || []);
             }
         };
         fetchAlerts();
@@ -72,7 +72,11 @@ const LandingPage = () => {
             path: '/ajustes',
             role: 'admin'
         },
-    ].filter(item => !item.role || item.role === user?.role);
+    ].filter(item => {
+        if (!item.role) return true;
+        if (user?.role === 'superadmin') return true;
+        return item.role === user?.role;
+    });
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 font-sans">
@@ -94,7 +98,7 @@ const LandingPage = () => {
 
             <main className="space-y-6 max-w-md mx-auto">
                 {/* Critical Alerts Section (Admin Only) */}
-                {user?.role === 'admin' && alerts.length > 0 && (
+                {(user?.role === 'admin' || user?.role === 'superadmin') && alerts.length > 0 && (
                     <section className="bg-red-50 border-2 border-red-100 rounded-[32px] p-6 mb-6">
                         <div className="flex items-center space-x-3 mb-4">
                             <div className="p-2 bg-red-100 rounded-xl">
