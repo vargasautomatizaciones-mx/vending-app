@@ -104,12 +104,6 @@ const ManageMachines = () => {
                         </button>
                         <h1 className="text-xl font-bold text-slate-900">Gestión de Máquinas</h1>
                     </div>
-                    <button
-                        onClick={handleOpenAdd}
-                        className="p-2 bg-slate-900 text-white rounded-full shadow-lg"
-                    >
-                        <Plus className="w-5 h-5" />
-                    </button>
                 </div>
             </header>
 
@@ -170,6 +164,17 @@ const ManageMachines = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* Fixed Bottom Action Button */}
+                <div className="fixed bottom-0 inset-x-0 p-6 bg-white/80 backdrop-blur-md border-t border-slate-100 z-30">
+                    <button
+                        onClick={handleOpenAdd}
+                        className="w-full bg-slate-900 text-white font-black py-5 rounded-3xl shadow-xl flex items-center justify-center space-x-3 active:scale-[0.98] transition-all"
+                    >
+                        <Plus className="w-6 h-6" />
+                        <span>AGREGAR NUEVA MÁQUINA</span>
+                    </button>
                 </div>
             </main>
 

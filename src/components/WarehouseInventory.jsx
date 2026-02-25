@@ -338,13 +338,13 @@ const WarehouseInventory = () => {
                 </div>
             </main>
 
-            {/* HIGH PRIORITY FIXED ACTION BUTTON */}
+            {/* FIXED BOTTOM ACTION BUTTON */}
             <div className="fixed bottom-0 inset-x-0 p-4 bg-white/95 backdrop-blur-sm border-t border-slate-100 z-[90]">
-                <div className="max-w-xl mx-auto">
+                <div className="max-w-xl mx-auto px-2">
                     <button
                         onClick={startEntryFlow}
                         type="button"
-                        className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center space-x-3 text-lg cursor-pointer"
+                        className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl active:scale-[0.98] transition-all flex items-center justify-center space-x-3 text-lg"
                     >
                         <Camera className="w-6 h-6" />
                         <span>AGREGAR MERCANCÍA</span>
