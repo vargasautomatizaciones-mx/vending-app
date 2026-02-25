@@ -45,37 +45,37 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/ruta-chofer" element={
-            <ProtectedRoute allowedRoles={['driver', 'admin']}>
+            <ProtectedRoute allowedRoles={['driver', 'admin', 'superadmin']}>
               <QRScanner />
             </ProtectedRoute>
           } />
           <Route path="/machine/:id" element={
-            <ProtectedRoute allowedRoles={['driver', 'admin']}>
+            <ProtectedRoute allowedRoles={['driver', 'admin', 'superadmin']}>
               <MachineDetails />
             </ProtectedRoute>
           } />
           <Route path="/reportes" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
               <OwnerReports />
             </ProtectedRoute>
           } />
           <Route path="/inventario" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
               <WarehouseInventory />
             </ProtectedRoute>
           } />
           <Route path="/gestion-maquinas" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
               <ManageMachines />
             </ProtectedRoute>
           } />
           <Route path="/historial" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
               <VisitHistory />
             </ProtectedRoute>
           } />
           <Route path="/ajustes" element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
               <Settings />
             </ProtectedRoute>
           } />
