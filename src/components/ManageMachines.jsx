@@ -77,12 +77,12 @@ const ManageMachines = () => {
             setIsEditModalOpen(false);
         } catch (error) {
             console.error('Error saving machine:', error);
-            alert('Error al guardar la máquina.');
+            alert('Error al guardar la máquina: ' + error.message);
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('¿Estás seguro de eliminar esta máquina?')) {
+        if (window.confirm('¿Estás seguro de eliminar esta máquina? Esta acción no se puede deshacer.')) {
             try {
                 await machineService.deleteMachine(id);
                 await fetchMachines();
@@ -99,189 +99,208 @@ const ManageMachines = () => {
     );
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
-            <header className="bg-white px-6 pt-10 pb-8 border-b border-slate-100 rounded-b-[48px] shadow-sm flex items-center space-x-6 relative z-10">
-                <button
-                    onClick={() => navigate('/')}
-                    className="p-4 bg-slate-50 text-slate-400 rounded-2xl active:scale-95 transition-all border border-slate-100"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div className="flex-1">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1">Empresa Central</p>
-                    <h1 className="text-3xl font-black text-slate-900 leading-none">Máquinas</h1>
-                </div>
-            </header>
-
-            <main className="flex-1 flex flex-col px-6 pt-8 pb-32 overflow-y-auto space-y-8">
-                <div className="relative group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                    <input
-                        className="w-full bg-white border border-slate-200 rounded-[30px] py-5 pl-14 pr-6 text-slate-900 font-bold focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 shadow-sm"
-                        placeholder="Buscar máquina..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between px-3">
-                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Listado de Equipos</h2>
-                        <div className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full">
-                            <span className="text-[10px] font-black uppercase text-blue-600">{filteredMachines.length} ACTIVAS</span>
-                        </div>
+        <div className="space-y-12 animate-in fade-in duration-700">
+            {/* Header / Actions */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div className="flex items-center space-x-3 mb-3">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em]">Fleet Operations</p>
                     </div>
-
-                    {loading ? (
-                        <div className="space-y-4">
-                            {[1, 2, 3].map(i => <div key={i} className="h-40 bg-white rounded-[40px] animate-pulse border border-slate-100"></div>)}
-                        </div>
-                    ) : (
-                        <div className="grid gap-5">
-                            {filteredMachines.map(machine => (
-                                <div key={machine.id} className="bg-white p-6 rounded-[48px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="flex items-center space-x-5">
-                                            <div className="w-16 h-16 bg-slate-50 rounded-[28px] flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-                                                <Coffee className="w-8 h-8 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{machine.name}</h3>
-                                                <p className="text-sm font-bold text-slate-400">{machine.location}</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-blue-600 text-white px-4 py-2 rounded-2xl text-xs font-black shadow-lg shadow-blue-200">
-                                            ${machine.price_per_cup}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-end space-x-2 pt-5 border-t border-slate-50/50">
-                                        <button
-                                            onClick={() => { setSelectedMachineQR(machine); setIsQRModalOpen(true); }}
-                                            className="p-4 bg-slate-50 text-slate-400 rounded-2xl active:scale-95 transition-all hover:bg-slate-100"
-                                        >
-                                            <QrCode className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleOpenEdit(machine)}
-                                            className="p-4 bg-slate-50 text-blue-600 rounded-2xl active:scale-95 transition-all hover:bg-blue-50"
-                                        >
-                                            <Edit2 className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(machine.id)}
-                                            className="p-4 bg-slate-50 text-red-500 rounded-2xl active:scale-95 transition-all hover:bg-red-50"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Gestión de <span className="text-blue-600">Activos</span></h1>
                 </div>
-            </main>
-
-            <div className="fixed bottom-0 inset-x-0 p-8 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-40">
                 <button
                     onClick={handleOpenAdd}
-                    className="w-full bg-slate-900 text-white font-black py-7 rounded-[32px] shadow-2xl shadow-slate-900/40 active:scale-[0.98] transition-all flex items-center justify-center space-x-3 text-lg tracking-tight"
+                    className="bg-slate-900 text-white px-8 py-5 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:shadow-slate-200 active:scale-95 transition-all flex items-center justify-center space-x-4 group"
                 >
-                    <Plus className="w-6 h-6" />
-                    <span className="uppercase">AGREGAR MÁQUINA</span>
+                    <Plus className="w-5 h-5 text-blue-400 group-hover:rotate-90 transition-transform" />
+                    <span>Registrar Nueva Unidad</span>
                 </button>
+            </header>
+
+            {/* Search Filter */}
+            <div className="relative group max-w-2xl">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                <input
+                    className="w-full bg-white border border-slate-100 rounded-[32px] py-6 pl-16 pr-8 text-slate-900 font-black text-sm focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 shadow-sm"
+                    placeholder="Filtrar flota por nombre o ubicación..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </div>
 
-            {/* Edit Modal */}
+            <div className="space-y-6">
+                <div className="flex items-center space-x-4 px-2">
+                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Directorio de Dispositivos</h2>
+                    <div className="h-px bg-slate-100 flex-1"></div>
+                    <span className="text-[10px] font-black text-slate-900 uppercase bg-slate-50 px-3 py-1 rounded-full border border-slate-100 italic">
+                        {filteredMachines.length} Unidades
+                    </span>
+                </div>
+
+                {loading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-48 bg-white rounded-[40px] animate-pulse border border-slate-50 shadow-sm"></div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredMachines.map(machine => (
+                            <div key={machine.id} className="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm flex flex-col justify-between group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div className="space-y-6 relative z-10">
+                                    <div className="flex items-start justify-between">
+                                        <div className="w-14 h-14 bg-slate-50 rounded-[24px] flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                                            <Coffee className="w-6 h-6 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xl font-black text-slate-900 tracking-tight">${machine.price_per_cup}</p>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Precio/Copa</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm truncate leading-tight">
+                                            {machine.name}
+                                        </h3>
+                                        <div className="flex items-center space-x-2">
+                                            <MapPin className="w-3 h-3 text-slate-300" />
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none truncate max-w-[140px]">
+                                                {machine.location}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2 pt-6 relative z-10">
+                                    <button
+                                        onClick={() => { setSelectedMachineQR(machine); setIsQRModalOpen(true); }}
+                                        className="flex-1 flex items-center justify-center space-x-2 py-3 bg-slate-50 rounded-2xl text-[9px] font-black uppercase text-slate-400 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                                    >
+                                        <QrCode className="w-3 h-3" />
+                                        <span>QR</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleOpenEdit(machine)}
+                                        className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(machine.id)}
+                                        className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Edit Modal / Glassmorphism */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-6">
-                    <div className="bg-white w-full max-w-sm rounded-[56px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-                        <div className="p-10 space-y-8">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-6 animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-md rounded-[56px] shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-500">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16"></div>
+                        <div className="p-10 space-y-8 relative z-10">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                                    {editingMachine ? 'Editar' : 'Nueva'}
-                                </h3>
-                                <button onClick={() => setIsEditModalOpen(false)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
-                                    <X className="w-8 h-8" />
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em]">Editor de Activos</p>
+                                    <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
+                                        {editingMachine ? 'Modificar' : 'Alta de Unidad'}
+                                    </h3>
+                                </div>
+                                <button onClick={() => setIsEditModalOpen(false)} className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-100 transition-colors">
+                                    <X className="w-6 h-6" />
                                 </button>
                             </div>
 
-                            <div className="space-y-5">
+                            <div className="grid gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Nombre del equipo</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identificador Público</label>
                                     <input
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all"
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-6 font-black text-slate-900 outline-none focus:border-blue-500 transition-all placeholder:text-slate-200"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Ej: Master 3000"
+                                        placeholder="Ej: CAFETERA PREMIUM A-1"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Ubicación física</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Referencia de Ubicación</label>
                                     <input
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all"
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-6 font-black text-slate-900 outline-none focus:border-blue-500 transition-all placeholder:text-slate-200"
                                         value={formData.location}
                                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder="Ej: Sala de Juntas"
+                                        placeholder="Ej: LOBBY PRINCIPAL"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Precio ($)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Tarifa ($)</label>
                                         <input
                                             type="number"
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all text-center"
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-6 font-black text-slate-900 outline-none focus:border-blue-500 transition-all text-center"
                                             value={formData.price_per_cup}
                                             onChange={(e) => setFormData({ ...formData, price_per_cup: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Modelo</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">SKU Modelo</label>
                                         <input
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all text-center"
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-6 font-black text-slate-900 outline-none focus:border-blue-500 transition-all text-center placeholder:text-slate-200"
                                             value={formData.model}
                                             onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                                            placeholder="MX-1"
+                                            placeholder="SERIE-X"
                                         />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-8 bg-slate-50 border-t border-slate-100">
+                        <div className="p-10 bg-slate-50 border-t border-slate-100">
                             <button
                                 onClick={handleSave}
-                                className="w-full bg-slate-900 text-white font-black py-6 rounded-[32px] shadow-xl active:scale-95 transition-all text-lg uppercase tracking-tight"
+                                className="w-full h-20 bg-slate-900 text-white font-black rounded-[32px] shadow-2xl active:scale-95 transition-all text-sm uppercase tracking-[0.2em] flex items-center justify-center space-x-3"
                             >
-                                {editingMachine ? 'Guardar Cambios' : 'Registrar Equipo'}
+                                <Save className="w-5 h-5 text-blue-400" />
+                                <span>{editingMachine ? 'Actualizar Registro' : 'Confirmar Alta'}</span>
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* QR Modal */}
+            {/* QR Modal / Sophisticated Display */}
             {isQRModalOpen && selectedMachineQR && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-xl p-8">
-                    <div className="bg-white w-full max-w-sm rounded-[60px] p-12 text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
-                        <div className="mb-10">
-                            <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2">{selectedMachineQR.name}</h3>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{selectedMachineQR.location}</p>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-2xl p-8 animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-sm rounded-[64px] p-12 text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-500 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
+                        <div className="mb-10 text-center space-y-1">
+                            <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none">{selectedMachineQR.name}</h3>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] pt-1">Identificador Digital Único</p>
                         </div>
-                        <div className="bg-slate-50 p-10 rounded-[48px] inline-block mb-10 border-2 border-slate-100 shadow-inner">
+                        <div className="bg-white p-12 rounded-[56px] inline-block mb-10 border border-slate-50 shadow-2xl shadow-slate-200/50">
                             <QRCodeSVG
                                 value={`vending-app://machine/${selectedMachineQR.id}`}
                                 size={220}
                                 level="H"
-                                includeMargin={true}
+                                includeMargin={false}
+                                fgColor="#0F172A"
                             />
                         </div>
-                        <button
-                            onClick={() => setIsQRModalOpen(false)}
-                            className="w-full bg-slate-900 text-white font-black py-6 rounded-[32px] text-lg uppercase tracking-tight shadow-xl active:scale-95 transition-all"
-                        >
-                            Cerrar
-                        </button>
+                        <div className="space-y-4">
+                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic max-w-xs mx-auto">
+                                Escanea este código con la terminal de operador para iniciar la visita técnica.
+                            </p>
+                            <button
+                                onClick={() => setIsQRModalOpen(false)}
+                                className="w-full bg-slate-900 text-white font-black py-6 rounded-[32px] text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all border border-white/10"
+                            >
+                                Finalizar Vista
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

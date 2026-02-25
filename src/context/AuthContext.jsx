@@ -25,45 +25,26 @@ export const AuthProvider = ({ children }) => {
         }
     }, [user]);
 
-    const login = async (username, password, companyId) => {
+    const login = async (username, password) => {
         try {
             const cleanUsername = username.trim();
             const cleanPassword = password.trim();
 
-            console.log('--- DIAGNÓSTICO DE LOGIN ---');
-            console.log('1. Intentando buscar usuario:', cleanUsername);
-
-            // Fetch user first without password constraint to see if they exist
             const { data: users, error: dbError } = await supabase
                 .from('users')
                 .select('*')
                 .or(`email.ilike.${cleanUsername},username.ilike.${cleanUsername}`);
 
-            if (dbError) {
-                console.error("2. ERROR DE BASE DE DATOS:", dbError);
-                return { success: false, message: `Error DB: ${dbError.message}` };
-            }
+            if (dbError) throw dbError;
 
             if (!users || users.length === 0) {
-                console.warn('2. RESULTADO: Usuario no encontrado en la tabla "users"');
                 return { success: false, message: 'Usuario no encontrado' };
             }
 
-            console.log(`2. RESULTADO: Se encontraron ${users.length} coincidencia(s)`);
-
-            // Validate password in JS for better debugging
             const match = users.find(u => u.password === cleanPassword);
 
             if (!match) {
-                console.warn('3. VALIDACIÓN: Contraseña INCORRECTA');
                 return { success: false, message: 'Contraseña incorrecta' };
-            }
-
-            console.log('3. VALIDACIÓN: ÉXITO. Bienvenido', match.name);
-
-            // For non-superadmins, verify company
-            if (match.role !== 'superadmin' && companyId && companyId !== 'master' && match.company_id !== companyId) {
-                return { success: false, message: 'No tienes acceso a esta empresa' };
             }
 
             const userData = {
@@ -78,8 +59,8 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             return { success: true };
         } catch (err) {
-            console.error('System login error:', err);
-            return { success: false, message: 'Error de conexión con el servidor' };
+            console.error('Login error:', err);
+            return { success: false, message: 'Error de servidor' };
         }
     };
 

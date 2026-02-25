@@ -10,7 +10,9 @@ import VisitHistory from './components/VisitHistory';
 import Settings from './components/Settings';
 import LoginPage from './components/LoginPage';
 import SuperAdminPanel from './components/SuperAdminPanel';
+import MainLayout from './components/layout/MainLayout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AlertTriangle } from 'lucide-react';
 import './App.css';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -22,15 +24,35 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Acceso Denegado</h2>
-        <p className="text-slate-500">No tienes permisos para ver esta sección.</p>
-        <button onClick={() => window.location.href = '/'} className="mt-4 text-blue-600 font-bold underline">Volver al inicio</button>
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-12 text-center font-sans">
+        <div className="w-24 h-24 bg-red-50 rounded-[40px] flex items-center justify-center mb-8">
+          <AlertTriangle className="w-12 h-12 text-red-500" />
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 mb-4 uppercase tracking-tight">Acceso Restringido</h2>
+        <p className="text-slate-400 font-bold max-w-xs mx-auto text-sm leading-relaxed mb-10 uppercase tracking-widest">
+          Tu perfil maestro no cuenta con los permisos necesarios para este módulo.
+        </p>
+        <button
+          onClick={() => window.location.href = '#/'}
+          className="bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
+        >
+          Volver al Centro de Control
+        </button>
       </div>
     );
   }
 
   return children;
+};
+
+// Simple auto-redirect hook/component to handle the initial landing
+const DashboardRedirect = () => {
+  const { user } = useAuth();
+
+  if (!user) return <LoginPage />;
+  if (user.role === 'superadmin') return <SuperAdminPanel />;
+
+  return <LandingPage />;
 };
 
 function App() {
@@ -39,49 +61,76 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
           <Route path="/" element={
             <ProtectedRoute>
-              <LandingPage />
+              <MainLayout>
+                <DashboardRedirect />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/ruta-chofer" element={
-            <ProtectedRoute allowedRoles={['driver', 'admin', 'superadmin']}>
-              <QRScanner />
+            <ProtectedRoute allowedRoles={['operator', 'admin', 'superadmin']}>
+              <MainLayout>
+                <QRScanner />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/machine/:id" element={
-            <ProtectedRoute allowedRoles={['driver', 'admin', 'superadmin']}>
-              <MachineDetails />
+            <ProtectedRoute allowedRoles={['operator', 'admin', 'superadmin']}>
+              <MainLayout>
+                <MachineDetails />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/reportes" element={
             <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-              <OwnerReports />
+              <MainLayout>
+                <OwnerReports />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/inventario" element={
-            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-              <WarehouseInventory />
+            <ProtectedRoute allowedRoles={['admin', 'superadmin', 'operator']}>
+              <MainLayout>
+                <WarehouseInventory />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/gestion-maquinas" element={
             <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-              <ManageMachines />
+              <MainLayout>
+                <ManageMachines />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/historial" element={
-            <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-              <VisitHistory />
+            <ProtectedRoute allowedRoles={['admin', 'superadmin', 'operator']}>
+              <MainLayout>
+                <VisitHistory />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/ajustes" element={
             <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-              <Settings />
+              <MainLayout>
+                <Settings />
+              </MainLayout>
             </ProtectedRoute>
           } />
+
           <Route path="/super-admin" element={
             <ProtectedRoute allowedRoles={['superadmin']}>
-              <SuperAdminPanel />
+              <MainLayout>
+                <SuperAdminPanel />
+              </MainLayout>
             </ProtectedRoute>
           } />
         </Routes>

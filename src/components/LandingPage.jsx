@@ -6,12 +6,10 @@ import { historyService } from '../services/historyService';
 
 const LandingPage = () => {
     const navigate = useNavigate();
-    const { user, logout, settings } = useAuth();
+    const { user } = useAuth();
     const [alerts, setAlerts] = useState([]);
-    const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
         const fetchAlerts = async () => {
             if (user?.role === 'admin' || user?.role === 'superadmin') {
                 const data = await historyService.getLowStockAlerts(user.companyId);
@@ -19,180 +17,184 @@ const LandingPage = () => {
             }
         };
         fetchAlerts();
-        return () => clearInterval(timer);
     }, [user]);
 
-    const menuItems = [
+    const kpis = user?.role === 'admin' || user?.role === 'superadmin' ? [
+        { label: 'Ventas Hoy', value: '$2,450', change: '+12%', color: 'text-emerald-500' },
+        { label: 'Máquinas Activas', value: '18/20', change: 'Estable', color: 'text-blue-500' },
+        { label: 'Alertas Stock', value: alerts.length, change: alerts.length > 0 ? 'Revisión' : 'Ok', color: alerts.length > 0 ? 'text-red-500' : 'text-slate-400' }
+    ] : [
+        { label: 'Visitas Hoy', value: '4/6', change: '66% Completado', color: 'text-blue-500' },
+        { label: 'Productividad', value: '98%', change: 'Excelente', color: 'text-emerald-500' },
+        { label: 'Tiempo Promedio', value: '15m', change: 'Estable', color: 'text-slate-400' }
+    ];
+
+    const actions = [
         {
-            title: 'Ruta Chofer',
-            description: 'Escanear QR y surtir',
-            icon: <Truck className="w-6 h-6" />,
-            color: 'bg-blue-600',
-            path: '/ruta-chofer'
-        },
-        {
-            title: 'Inventario',
-            description: 'Gestión de almacén',
-            icon: <Package className="w-6 h-6" />,
-            color: 'bg-indigo-600',
+            id: 'inventario',
             path: '/inventario',
-            role: 'admin'
+            icon: Package,
+            label: user?.role === 'operator' ? 'Mi Carga' : 'Inventario',
+            desc: user?.role === 'operator' ? 'Géstión de Stock' : 'Logística Almacén',
+            color: 'bg-indigo-50',
+            iconColor: 'text-indigo-600',
+            activeColor: 'group-hover:bg-indigo-600',
+            roles: ['admin', 'superadmin', 'operator']
         },
         {
-            title: 'Reportes',
-            description: 'Ventas y análisis',
-            icon: <BarChart3 className="w-6 h-6" />,
-            color: 'bg-purple-600',
-            path: '/reportes',
-            role: 'admin'
+            id: 'ruta',
+            path: '/ruta-chofer',
+            icon: Truck,
+            label: 'Ruta Activa',
+            desc: 'Surtido Táctico',
+            color: 'bg-emerald-50',
+            iconColor: 'text-emerald-600',
+            activeColor: 'group-hover:bg-emerald-600',
+            roles: ['operator']
         },
         {
-            title: 'Máquinas',
-            description: 'Gestión de flota',
-            icon: <SettingsIcon className="w-6 h-6" />,
-            color: 'bg-slate-700',
+            id: 'maquinas',
             path: '/gestion-maquinas',
-            role: 'admin'
+            icon: Coffee,
+            label: 'Máquinas',
+            desc: 'Gestión de Flota',
+            color: 'bg-blue-50',
+            iconColor: 'text-blue-600',
+            activeColor: 'group-hover:bg-blue-600',
+            roles: ['admin', 'superadmin']
         },
         {
-            title: 'Historial',
-            description: 'Auditoría visitas',
-            icon: <History className="w-6 h-6" />,
-            color: 'bg-amber-600',
+            id: 'reportes',
+            path: '/reportes',
+            icon: BarChart3,
+            label: 'Análisis',
+            desc: 'Métricas de Venta',
+            color: 'bg-purple-50',
+            iconColor: 'text-purple-600',
+            activeColor: 'group-hover:bg-purple-600',
+            roles: ['admin', 'superadmin']
+        },
+        {
+            id: 'historial',
             path: '/historial',
-            role: 'admin'
-        },
-        {
-            title: 'Ajustes',
-            description: 'Perfil negocio',
-            icon: <UserIcon className="w-6 h-6" />,
-            color: 'bg-slate-500',
-            path: '/ajustes',
-            role: 'admin'
-        },
-    ].filter(item => {
-        if (!item.role) return true;
-        if (user?.role === 'superadmin') return true;
-        return item.role === user?.role;
-    });
+            icon: History,
+            label: 'Auditoría',
+            desc: 'Historial de Visitas',
+            color: 'bg-slate-50',
+            iconColor: 'text-slate-600',
+            activeColor: 'group-hover:bg-slate-900',
+            roles: ['admin', 'superadmin', 'operator']
+        }
+    ];
+
+    const filteredActions = actions.filter(a => a.roles.includes(user?.role));
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans pb-12">
-            {/* Dark Premium Header */}
-            <header className="bg-slate-900 text-white px-8 pt-10 pb-16 rounded-b-[60px] shadow-2xl relative overflow-hidden z-10 shrink-0">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -mr-32 -mt-32"></div>
-
-                <div className="flex justify-between items-start relative z-10 mb-8">
-                    <div className="space-y-1">
-                        <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Logistics Core</p>
-                        <h1 className="text-3xl font-black tracking-tight leading-none uppercase">
-                            Hola, {user?.name.split(' ')[0]} <span className="inline-block animate-bounce">👋</span>
-                        </h1>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2 bg-white/5 w-fit px-3 py-1 rounded-full border border-white/5">
-                            {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
-                        </p>
-                    </div>
-                    <button
-                        onClick={logout}
-                        className="p-4 bg-white/5 border border-white/10 rounded-[24px] text-white active:scale-95 transition-all shadow-xl"
-                    >
-                        <LogOut className="w-5 h-5" />
-                    </button>
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Executive Welcome */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em] mb-3">
+                        {user?.role === 'operator' ? 'Terminal de Operador' : 'Panel de Control Ejecutivo'}
+                    </p>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
+                        Operación <span className="text-blue-600">{user?.role === 'operator' ? 'Logística' : 'Estratégica'}</span>
+                    </h1>
                 </div>
-
-                <div className="flex items-center space-x-3 relative z-10">
-                    <div className="flex items-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-                        Hub Activo
-                    </div>
-                    {user?.role === 'superadmin' && (
-                        <button
-                            onClick={() => navigate('/super-admin')}
-                            className="bg-blue-600/10 text-blue-400 border border-blue-600/20 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600/20 transition-all"
-                        >
-                            Master UI
-                        </button>
-                    )}
+                <div className="hidden md:flex items-center space-x-3 bg-white px-6 py-4 rounded-[24px] border border-slate-100 shadow-sm">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Status: Nominal</span>
                 </div>
             </header>
 
-            <main className="p-6 max-w-md mx-auto -mt-10 space-y-10 relative z-20">
-                {/* Critical Alerts */}
-                {(user?.role === 'admin' || user?.role === 'superadmin') && alerts.length > 0 && (
-                    <section className="bg-white rounded-[48px] p-8 border-2 border-red-50 shadow-2xl shadow-red-900/10">
-                        <div className="flex items-center justify-between mb-6 px-2">
-                            <div className="flex items-center space-x-3">
-                                <AlertTriangle className="w-5 h-5 text-red-500" />
-                                <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Alertas Críticas</h1>
+            {/* KPI Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {kpis.map((kpi, idx) => (
+                    <div key={idx} className="bg-white p-8 rounded-[48px] shadow-sm border border-slate-100 group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="relative z-10 space-y-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
+                            <div className="flex items-end justify-between">
+                                <h3 className="text-3xl font-black text-slate-900 leading-none tracking-tighter">{kpi.value}</h3>
+                                <span className={`text-[9px] font-black uppercase tracking-tight bg-slate-50 px-3 py-1 rounded-full border border-slate-100 ${kpi.color}`}>
+                                    {kpi.change}
+                                </span>
                             </div>
-                            <span className="bg-red-500 text-white w-6 h-6 rounded-xl flex items-center justify-center text-[10px] font-black shadow-lg shadow-red-500/40">
-                                {alerts.length}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Critical Alerts Card - Only for Admins */}
+            {(user?.role === 'admin' || user?.role === 'superadmin') && alerts.length > 0 && (
+                <section className="bg-white rounded-[64px] p-12 shadow-sm border border-slate-100 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-red-50 rounded-full -mr-24 -mt-24 opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+                    <div className="relative z-10">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+                            <div className="flex items-center space-x-5">
+                                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-[28px] flex items-center justify-center shadow-inner">
+                                    <AlertTriangle className="w-8 h-8" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-tight">Alertas de <span className="text-red-500">Stock</span></h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Requerido en logística de campo</p>
+                                </div>
+                            </div>
+                            <span className="bg-red-500 text-white px-6 py-3 rounded-2xl text-[10px] font-black shadow-2xl shadow-red-200 uppercase tracking-[0.2em] self-start sm:self-center">
+                                {alerts.length} Incidencias
                             </span>
                         </div>
-                        <div className="space-y-4">
-                            {alerts.slice(0, 2).map((alert, idx) => (
+                        <div className="grid gap-4">
+                            {alerts.slice(0, 3).map((alert, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => navigate(`/machine/${alert.machineId}`)}
-                                    className="w-full bg-slate-50 p-6 rounded-[32px] flex justify-between items-center active:scale-[0.98] transition-all text-left group"
+                                    className="w-full bg-slate-50/50 p-6 rounded-[36px] flex justify-between items-center group/item active:scale-[0.98] transition-all border border-transparent hover:border-slate-200 hover:bg-white"
                                 >
-                                    <div className="flex-1 min-w-0 pr-4">
-                                        <p className="font-black text-slate-900 uppercase tracking-tight text-sm truncate">{alert.machineName}</p>
-                                        <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mt-1">Suministro insuficiente</p>
+                                    <div className="flex items-center space-x-5 min-w-0">
+                                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                                            <Coffee className="w-6 h-6 text-slate-300 group-hover/item:text-blue-500 transition-colors" />
+                                        </div>
+                                        <div className="text-left min-w-0 space-y-1">
+                                            <p className="font-black text-slate-900 uppercase tracking-tight text-sm truncate">{alert.machineName}</p>
+                                            <p className="text-[9px] font-black text-red-400 uppercase tracking-widest leading-none">Prioridad Máxima</p>
+                                        </div>
                                     </div>
-                                    <div className="p-2 bg-white rounded-xl shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                        <ChevronRight className="w-4 h-4" />
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center group-hover/item:bg-slate-900 group-hover/item:text-white transition-all">
+                                        <ChevronRight className="w-5 h-5" />
                                     </div>
                                 </button>
                             ))}
                         </div>
-                    </section>
-                )}
-
-                {/* Main Action Grid */}
-                <section className="space-y-6">
-                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] pl-6 mb-2">Comandos Principales</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        {menuItems.map((item, index) => (
-                            <button
-                                key={index}
-                                onClick={() => navigate(item.path)}
-                                className="group relative bg-white border border-slate-100 rounded-[48px] p-8 shadow-sm hover:shadow-2xl hover:-translate-y-2 active:scale-95 transition-all duration-300 overflow-hidden text-left"
-                            >
-                                <div className={`w-14 h-14 ${item.color} rounded-[24px] flex items-center justify-center text-white mb-6 shadow-xl group-hover:rotate-12 transition-transform`}>
-                                    {item.icon}
-                                </div>
-                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{item.title}</h3>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.description}</p>
-
-                                {/* Geometric flair */}
-                                <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.1] transition-opacity">
-                                    {React.cloneElement(item.icon, { className: 'w-20 h-20' })}
-                                </div>
-                            </button>
-                        ))}
                     </div>
                 </section>
+            )}
 
-                <footer className="bg-slate-900 rounded-[48px] p-10 text-white relative overflow-hidden shadow-2xl">
-                    <div className="relative z-10 flex flex-col space-y-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center">
-                                <Coffee className="w-5 h-5 text-blue-400" />
+            {/* Quick Actions Grid */}
+            <section className="space-y-8">
+                <div className="flex items-center space-x-4 px-2">
+                    <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Módulos de Operación</h2>
+                    <div className="h-px bg-slate-100 flex-1"></div>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filteredActions.map((action) => (
+                        <button
+                            key={action.id}
+                            onClick={() => navigate(action.path)}
+                            className="bg-white p-8 rounded-[56px] shadow-sm border border-slate-100 text-left space-y-8 group hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-2 transition-all duration-500 relative overflow-hidden"
+                        >
+                            <div className={`w-16 h-16 ${action.color} ${action.iconColor} rounded-[28px] flex items-center justify-center ${action.activeColor} group-hover:text-white transition-all duration-500 shadow-sm relative z-10`}>
+                                <action.icon className="w-8 h-8" />
                             </div>
-                            <div>
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Operadora</h4>
-                                <h3 className="text-xl font-black leading-tight truncate">{settings?.businessName || 'Vending Analytics'}</h3>
+                            <div className="relative z-10">
+                                <h3 className="text-base font-black text-slate-900 uppercase tracking-tight leading-tight">{action.label}</h3>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">{action.desc}</p>
                             </div>
-                        </div>
-                        <div className="h-px bg-white/5 w-full"></div>
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Master Console v2.0</p>
-                    </div>
-                    {/* Visual accents */}
-                    <div className="absolute -bottom-10 -right-10 w-44 h-44 bg-blue-600/20 rounded-full blur-[60px]"></div>
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
-                </footer>
-            </main>
+                            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-slate-50 rounded-full opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"></div>
+                        </button>
+                    ))}
+                </div>
+            </section>
         </div>
     );
 };
