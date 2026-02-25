@@ -29,7 +29,7 @@ const ManageMachines = () => {
         name: '',
         location: '',
         model: '',
-        pricePerCup: 15
+        price_per_cup: 15
     });
 
     const fetchMachines = async () => {
@@ -136,7 +136,7 @@ const ManageMachines = () => {
                                     <div className="flex items-center mt-1">
                                         <p className="text-xs text-slate-500 font-medium mr-3">{machine.location}</p>
                                         <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md">
-                                            ${machine.pricePerCup}/taza
+                                            ${machine.price_per_cup}/taza
                                         </span>
                                     </div>
                                 </div>
@@ -211,8 +211,8 @@ const ManageMachines = () => {
                                     type="number"
                                     inputMode="decimal"
                                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/5 outline-none"
-                                    value={formData.pricePerCup}
-                                    onChange={(e) => setFormData({ ...formData, pricePerCup: parseInt(e.target.value) || 0 })}
+                                    value={formData.price_per_cup}
+                                    onChange={(e) => setFormData({ ...formData, price_per_cup: parseInt(e.target.value) || 0 })}
                                     placeholder="Ej: 15"
                                 />
                             </div>
