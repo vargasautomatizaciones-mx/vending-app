@@ -17,13 +17,14 @@ import { useAuth } from '../context/AuthContext';
 
 const ManageMachines = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [machines, setMachines] = useState([]);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
     const [editingMachine, setEditingMachine] = useState(null);
     const [selectedMachineQR, setSelectedMachineQR] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -33,9 +34,13 @@ const ManageMachines = () => {
     });
 
     const fetchMachines = async () => {
-        if (user?.companyId) {
+        if (!user?.companyId) return;
+        setLoading(true);
+        try {
             const data = await machineService.getMachines(user.companyId);
-            setMachines(data);
+            setMachines(data || []);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -62,7 +67,6 @@ const ManageMachines = () => {
 
     const handleSave = async () => {
         if (!formData.name || !formData.location) return;
-
         try {
             if (editingMachine) {
                 await machineService.updateMachine(editingMachine.id, formData);
@@ -95,156 +99,161 @@ const ManageMachines = () => {
     );
 
     return (
-        <div className="min-h-screen bg-white font-sans pb-12">
-            <header className="bg-white border-b border-slate-200 p-6 sticky top-0 z-20">
-                <div className="max-w-md mx-auto flex items-center justify-between">
-                    <div className="flex items-center">
-                        <button onClick={() => navigate('/')} className="p-2 hover:bg-slate-100 rounded-full mr-2 transition-colors text-slate-600">
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                        <h1 className="text-xl font-bold text-slate-900">Gestión de Máquinas</h1>
-                    </div>
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+            <header className="bg-white px-6 pt-10 pb-8 border-b border-slate-100 rounded-b-[48px] shadow-sm flex items-center space-x-6 relative z-10">
+                <button
+                    onClick={() => navigate('/')}
+                    className="p-4 bg-slate-50 text-slate-400 rounded-2xl active:scale-95 transition-all border border-slate-100"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1">Empresa Central</p>
+                    <h1 className="text-3xl font-black text-slate-900 leading-none">Máquinas</h1>
                 </div>
             </header>
 
-            <main className="p-6 max-w-md mx-auto space-y-6">
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <main className="flex-1 flex flex-col px-6 pt-8 pb-32 overflow-y-auto space-y-8">
+                <div className="relative group">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <input
-                        type="text"
+                        className="w-full bg-white border border-slate-200 rounded-[30px] py-5 pl-14 pr-6 text-slate-900 font-bold focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 shadow-sm"
                         placeholder="Buscar máquina..."
-                        className="w-full bg-white border border-slate-200 rounded-3xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
                 <div className="space-y-4">
-                    {filteredMachines.map((machine) => (
-                        <div key={machine.id} className="bg-white rounded-[32px] p-5 shadow-sm border border-slate-100 group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex items-center">
-                                    <div className="p-3 bg-slate-50 rounded-2xl mr-4 group-hover:bg-blue-50 transition-colors">
-                                        <Coffee className="w-6 h-6 text-slate-600 group-hover:text-blue-600" />
-                                    </div>
-                                    <div className="flex items-center mt-1">
-                                        <p className="text-xs text-slate-500 font-medium mr-3">{machine.location}</p>
-                                        <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md">
-                                            ${machine.price_per_cup}/taza
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="bg-slate-100 px-2 py-1 rounded-md text-[10px] font-black text-slate-500 uppercase tracking-tighter">
-                                    {machine.model}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-50">
-                                <button
-                                    onClick={() => { setSelectedMachineQR(machine); setIsQRModalOpen(true); }}
-                                    className="p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-                                    title="Ver QR"
-                                >
-                                    <QrCode className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => handleOpenEdit(machine)}
-                                    className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                    title="Editar"
-                                >
-                                    <Edit2 className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(machine.id)}
-                                    className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                    title="Eliminar"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
+                    <div className="flex items-center justify-between px-3">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Listado de Equipos</h2>
+                        <div className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full">
+                            <span className="text-[10px] font-black uppercase text-blue-600">{filteredMachines.length} ACTIVAS</span>
                         </div>
-                    ))}
-                </div>
+                    </div>
 
-                {/* Fixed Bottom Action Button */}
-                <div className="fixed bottom-0 inset-x-0 p-6 bg-white/80 backdrop-blur-md border-t border-slate-100 z-30">
-                    <button
-                        onClick={handleOpenAdd}
-                        className="w-full bg-slate-900 text-white font-black py-5 rounded-3xl shadow-xl flex items-center justify-center space-x-3 active:scale-[0.98] transition-all"
-                    >
-                        <Plus className="w-6 h-6" />
-                        <span>AGREGAR NUEVA MÁQUINA</span>
-                    </button>
+                    {loading ? (
+                        <div className="space-y-4">
+                            {[1, 2, 3].map(i => <div key={i} className="h-40 bg-white rounded-[40px] animate-pulse border border-slate-100"></div>)}
+                        </div>
+                    ) : (
+                        <div className="grid gap-5">
+                            {filteredMachines.map(machine => (
+                                <div key={machine.id} className="bg-white p-6 rounded-[48px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div className="flex items-center space-x-5">
+                                            <div className="w-16 h-16 bg-slate-50 rounded-[28px] flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                                                <Coffee className="w-8 h-8 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">{machine.name}</h3>
+                                                <p className="text-sm font-bold text-slate-400">{machine.location}</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-blue-600 text-white px-4 py-2 rounded-2xl text-xs font-black shadow-lg shadow-blue-200">
+                                            ${machine.price_per_cup}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-end space-x-2 pt-5 border-t border-slate-50/50">
+                                        <button
+                                            onClick={() => { setSelectedMachineQR(machine); setIsQRModalOpen(true); }}
+                                            className="p-4 bg-slate-50 text-slate-400 rounded-2xl active:scale-95 transition-all hover:bg-slate-100"
+                                        >
+                                            <QrCode className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleOpenEdit(machine)}
+                                            className="p-4 bg-slate-50 text-blue-600 rounded-2xl active:scale-95 transition-all hover:bg-blue-50"
+                                        >
+                                            <Edit2 className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(machine.id)}
+                                            className="p-4 bg-slate-50 text-red-500 rounded-2xl active:scale-95 transition-all hover:bg-red-50"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
 
-            {/* Add/Edit Modal */}
+            <div className="fixed bottom-0 inset-x-0 p-8 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-40">
+                <button
+                    onClick={handleOpenAdd}
+                    className="w-full bg-slate-900 text-white font-black py-7 rounded-[32px] shadow-2xl shadow-slate-900/40 active:scale-[0.98] transition-all flex items-center justify-center space-x-3 text-lg tracking-tight"
+                >
+                    <Plus className="w-6 h-6" />
+                    <span className="uppercase">AGREGAR MÁQUINA</span>
+                </button>
+            </div>
+
+            {/* Edit Modal */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4">
-                    <div className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] p-6 sm:p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-10 flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-black text-slate-900">
-                                {editingMachine ? 'Editar Máquina' : 'Nueva Máquina'}
-                            </h3>
-                            <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
-                                <X className="w-6 h-6 text-slate-400" />
-                            </button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-6">
+                    <div className="bg-white w-full max-w-sm rounded-[56px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="p-10 space-y-8">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
+                                    {editingMachine ? 'Editar' : 'Nueva'}
+                                </h3>
+                                <button onClick={() => setIsEditModalOpen(false)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">
+                                    <X className="w-8 h-8" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Nombre del equipo</label>
+                                    <input
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Ej: Master 3000"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Ubicación física</label>
+                                    <input
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all"
+                                        value={formData.location}
+                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                        placeholder="Ej: Sala de Juntas"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Precio ($)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all text-center"
+                                            value={formData.price_per_cup}
+                                            onChange={(e) => setFormData({ ...formData, price_per_cup: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Modelo</label>
+                                        <input
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] p-5 font-bold text-slate-900 outline-none focus:border-blue-500 transition-all text-center"
+                                            value={formData.model}
+                                            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                                            placeholder="MX-1"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="space-y-5 overflow-y-auto pb-6 pr-2 -mr-2">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Nombre</label>
-                                <input
-                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/5 outline-none"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="Ej: Master 3000"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Ubicación</label>
-                                <input
-                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/5 outline-none"
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder="Ej: Piso 2 - Sala juntas"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Precio por Taza ($)</label>
-                                <input
-                                    type="number"
-                                    inputMode="decimal"
-                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/5 outline-none"
-                                    value={formData.price_per_cup}
-                                    onChange={(e) => setFormData({ ...formData, price_per_cup: parseInt(e.target.value) || 0 })}
-                                    placeholder="Ej: 15"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Modelo</label>
-                                <input
-                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/5 outline-none"
-                                    value={formData.model}
-                                    onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                                    placeholder="Ej: MX-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 shrink-0">
-                            <button
-                                onClick={() => setIsEditModalOpen(false)}
-                                className="bg-slate-100 text-slate-600 font-bold py-4 rounded-3xl active:scale-95 transition-all text-sm"
-                            >
-                                Cancelar
-                            </button>
+                        <div className="p-8 bg-slate-50 border-t border-slate-100">
                             <button
                                 onClick={handleSave}
-                                className="bg-slate-900 text-white font-bold py-4 rounded-3xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all text-sm"
+                                className="w-full bg-slate-900 text-white font-black py-6 rounded-[32px] shadow-xl active:scale-95 transition-all text-lg uppercase tracking-tight"
                             >
-                                <Save className="w-4 h-4" />
-                                <span>{editingMachine ? 'Guardar' : 'Registrar'}</span>
+                                {editingMachine ? 'Guardar Cambios' : 'Registrar Equipo'}
                             </button>
                         </div>
                     </div>
@@ -253,26 +262,23 @@ const ManageMachines = () => {
 
             {/* QR Modal */}
             {isQRModalOpen && selectedMachineQR && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-sm rounded-[40px] p-10 text-center shadow-2xl animate-in fade-in zoom-in-95">
-                        <div className="mb-4">
-                            <h3 className="text-2xl font-black text-slate-900">{selectedMachineQR.name}</h3>
-                            <p className="text-sm text-slate-500">{selectedMachineQR.location}</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-xl p-8">
+                    <div className="bg-white w-full max-w-sm rounded-[60px] p-12 text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
+                        <div className="mb-10">
+                            <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2">{selectedMachineQR.name}</h3>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{selectedMachineQR.location}</p>
                         </div>
-                        <div className="bg-slate-50 p-8 rounded-[40px] inline-block mb-8 border-2 border-slate-100 shadow-inner">
+                        <div className="bg-slate-50 p-10 rounded-[48px] inline-block mb-10 border-2 border-slate-100 shadow-inner">
                             <QRCodeSVG
                                 value={`vending-app://machine/${selectedMachineQR.id}`}
-                                size={200}
+                                size={220}
                                 level="H"
                                 includeMargin={true}
                             />
                         </div>
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-8">
-                            ID: {selectedMachineQR.id}
-                        </div>
                         <button
                             onClick={() => setIsQRModalOpen(false)}
-                            className="w-full bg-slate-100 text-slate-900 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-colors"
+                            className="w-full bg-slate-900 text-white font-black py-6 rounded-[32px] text-lg uppercase tracking-tight shadow-xl active:scale-95 transition-all"
                         >
                             Cerrar
                         </button>

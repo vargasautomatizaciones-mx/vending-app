@@ -16,320 +16,271 @@ import { inventoryService } from '../services/inventoryService';
 import { useAuth } from '../context/AuthContext';
 import { Html5Qrcode } from 'html5-qrcode';
 
+const QRScanner = ({ onScanSuccess }) => {
+    const scannerId = "vending-qr-scanner-id";
+    const scannerRef = useRef(null);
+
+    useEffect(() => {
+        const startScanner = async () => {
+            try {
+                if (!scannerRef.current) {
+                    scannerRef.current = new Html5Qrcode(scannerId);
+                }
+
+                await scannerRef.current.start(
+                    { facingMode: "environment" },
+                    { fps: 15, qrbox: { width: 250, height: 250 } },
+                    (decodedText) => {
+                        onScanSuccess(decodedText);
+                    },
+                    (() => { })
+                );
+            } catch (err) {
+                console.warn("Scanner init error:", err);
+            }
+        };
+
+        const timer = setTimeout(startScanner, 500);
+
+        return () => {
+            clearTimeout(timer);
+            if (scannerRef.current?.isScanning) {
+                scannerRef.current.stop().catch(() => { });
+            }
+        };
+    }, []);
+
+    return <div id={scannerId} className="w-full h-full bg-black"></div>;
+};
+
 const WarehouseInventory = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [inventory, setInventory] = useState([]);
-    const [view, setView] = useState('list'); // 'list' | 'entry'
-    const [scannerActive, setScannerActive] = useState(false);
-    const [scannedProduct, setScannedProduct] = useState(null);
-    const [amount, setAmount] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [fetchError, setFetchError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const html5QrCodeRef = useRef(null);
-    const scannerId = "vending-scanner-id";
+    // Entry Flow States
+    const [showEntryFlow, setShowEntryFlow] = useState(false);
+    const [scannedResult, setScannedResult] = useState(null);
+    const [addAmount, setAddAmount] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [fetchError, setFetchError] = useState(null);
 
-    const { user } = useAuth();
+    useEffect(() => {
+        loadInventory();
+    }, []);
 
-    const fetchInventory = async () => {
+    const loadInventory = async () => {
         if (!user?.companyId) return;
-
+        setLoading(true);
+        setFetchError(null);
         try {
-            setLoading(true);
-            setFetchError(null);
             const data = await inventoryService.getInventory(user.companyId);
             setInventory(data || []);
         } catch (err) {
-            console.error('Error fetching inventory:', err);
-            setFetchError('No se pudo cargar el inventario. Verifica tu conexión.');
+            setFetchError('Error de conexión');
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchInventory();
-
-        return () => {
-            if (html5QrCodeRef.current?.isScanning) {
-                html5QrCodeRef.current.stop().catch(() => { });
-            }
-        };
-    }, [user]);
-
-    const startEntryFlow = (e) => {
-        if (e) e.stopPropagation();
-        setView('entry');
-        setScannerActive(true);
-        setScannedProduct(null);
-        setAmount('');
-        setShowSuccess(false);
-
-        // Allow React to mount the scanner div
-        setTimeout(async () => {
-            try {
-                const container = document.getElementById(scannerId);
-                console.log("Scanner container check:", container ? "Found" : "Not Found");
-                if (!container) return;
-
-                if (!html5QrCodeRef.current) {
-                    html5QrCodeRef.current = new Html5Qrcode(scannerId);
-                }
-
-                await html5QrCodeRef.current.start(
-                    { facingMode: "environment" },
-                    { fps: 15, qrbox: { width: 250, height: 250 } },
-                    (decodedText) => {
-                        handleScanSuccess(decodedText);
-                    },
-                    (() => { })
-                );
-            } catch (err) {
-                console.error("Scanner error:", err);
-            }
-        }, 500);
-    };
-
     const handleScanSuccess = async (barcode) => {
-        if (html5QrCodeRef.current) {
-            try {
-                await html5QrCodeRef.current.stop();
-            } catch (e) {
-                console.warn("Error stopping scanner:", e);
-            }
-        }
-        setScannerActive(false);
-
-        const product = await inventoryService.getProductByBarcode(barcode);
-        if (product) {
-            setScannedProduct(product);
-        } else {
-            setScannedProduct({
-                barcode,
-                name: `CÓDIGO: ${barcode}`,
-                image: 'https://images.unsplash.com/photo-1540340061722-9293d5163008?w=400',
-                category: 'NO CATALOGADO'
-            });
-        }
-    };
-
-    const handleSave = async () => {
-        if (!scannedProduct || !amount) return;
-        setIsSaving(true);
-
-        const productId = scannedProduct.id || scannedProduct.barcode;
-        const currentAmount = parseInt(amount) || 0;
-
+        setScannedResult({ barcode, name: 'Cargando...', quantity: 0 });
         try {
-            await inventoryService.updateStock(productId, currentAmount, user.companyId);
-            await fetchInventory();
-            setIsSaving(false);
-            setShowSuccess(true);
+            const product = await inventoryService.getProductByBarcode(barcode);
+            if (product) {
+                setScannedResult(product);
+            } else {
+                setScannedResult({
+                    barcode,
+                    name: `Producto ${barcode}`,
+                    quantity: 0,
+                    isNew: true
+                });
+            }
+        } catch (err) {
+            console.error("Scan error", err);
+        }
+    };
 
-            setTimeout(() => {
-                setView('list');
-                setShowSuccess(false);
-                setScannedProduct(null);
-                setAmount('');
-            }, 1200);
-        } catch (error) {
-            console.error('Error updating stock:', error);
-            alert('Error al actualizar el inventario.');
+    const handleSaveEntry = async () => {
+        if (!addAmount || isNaN(addAmount)) return;
+        setIsSaving(true);
+        try {
+            await inventoryService.updateStock(
+                scannedResult.isNew ? scannedResult.barcode : scannedResult.id,
+                parseInt(addAmount),
+                user.companyId
+            );
+            await loadInventory();
+            setShowEntryFlow(false);
+            setScannedResult(null);
+            setAddAmount('');
+        } catch (err) {
+            alert("Error al guardar: " + err.message);
+        } finally {
             setIsSaving(false);
         }
     };
 
-    const closeEntry = () => {
-        if (html5QrCodeRef.current?.isScanning) {
-            html5QrCodeRef.current.stop().catch(() => { });
-        }
-        setView('list');
-        setScannerActive(false);
-    };
-
-    // Filters inventory based on search term
     const filteredInventory = inventory.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.barcode && item.barcode.includes(searchTerm))
     );
 
-    // --- MAIN RENDER ---
-    if (view === 'entry') {
+    if (showEntryFlow) {
         return (
-            <div className="fixed inset-0 bg-white flex flex-col font-sans z-[100] animate-in slide-in-from-bottom duration-300">
-                <header className="bg-slate-900 text-white p-4 sticky top-0 z-50 flex items-center justify-between shadow-lg">
-                    <div className="flex items-center">
-                        <button onClick={closeEntry} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
-                            <ArrowLeft className="w-6 h-6" />
-                        </button>
-                        <h2 className="ml-2 font-black uppercase text-base tracking-tight">INGRESO DE MERCANCÍA</h2>
-                    </div>
+            <div className="min-h-screen bg-slate-900 flex flex-col font-sans">
+                <header className="p-6 flex items-center justify-between">
+                    <button
+                        onClick={() => { setShowEntryFlow(false); setScannedResult(null); }}
+                        className="p-3 bg-white/10 text-white rounded-2xl active:scale-90 transition-all font-bold"
+                    >
+                        <ArrowLeft className="w-6 h-6" />
+                    </button>
+                    <h1 className="text-[10px] font-black text-white uppercase tracking-[0.2em] opacity-40">Ingreso de Mercancía</h1>
+                    <div className="w-12 text-blue-500 font-bold">●</div>
                 </header>
 
-                <main className="flex-1 bg-slate-50 overflow-y-auto p-4 sm:p-6 pb-28">
-                    <div className="max-w-md mx-auto space-y-8">
-                        {showSuccess ? (
-                            <div className="py-20 text-center animate-in zoom-in duration-300">
-                                <div className="w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto shadow-2xl mb-8 border-8 border-green-50">
-                                    <CheckCircle2 className="w-12 h-12" />
+                <main className="flex-1 flex flex-col px-6 pb-24 overflow-y-auto">
+                    {!scannedResult ? (
+                        <div className="flex-1 flex flex-col space-y-8 py-10">
+                            <div className="aspect-square w-full bg-slate-800 rounded-[60px] overflow-hidden border-2 border-white/10 relative shadow-2xl">
+                                <QRScanner onScanSuccess={handleScanSuccess} />
+                                <div className="absolute inset-0 pointer-events-none border-[30px] border-slate-900/40 flex items-center justify-center">
+                                    <div className="w-full h-1 bg-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.8)] animate-pulse"></div>
                                 </div>
-                                <h1 className="text-4xl font-black text-slate-900 mb-2">¡HECHO!</h1>
-                                <p className="text-slate-500 font-bold">Inventario actualizado con éxito.</p>
                             </div>
-                        ) : (
-                            <>
-                                {scannerActive && (
-                                    <div className="space-y-6">
-                                        <div className="text-center">
-                                            <div className="inline-block px-4 py-1 bg-slate-200 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">Apunta la Cámara al Código</div>
-                                        </div>
-                                        <div id={scannerId} className="w-full aspect-square bg-black rounded-[48px] overflow-hidden border-8 border-white shadow-2xl relative ring-1 ring-white/5">
-                                            <div className="absolute inset-0 border-[50px] border-black/40 pointer-events-none flex items-center justify-center">
-                                                <div className="w-full h-full border-2 border-blue-500 rounded-3xl animate-pulse text-blue-500 flex items-center justify-center">
-                                                    <Camera className="w-12 h-12 opacity-20" />
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div className="text-center space-y-3">
+                                <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em]">Cámara Activa</p>
+                                <p className="text-slate-400 text-sm font-bold max-w-[200px] mx-auto opacity-60">Escanea el código de barras del producto</p>
+                                <button
+                                    onClick={() => handleScanSuccess('12345')}
+                                    className="pt-10 text-[10px] text-white/20 font-black uppercase tracking-widest"
+                                >
+                                    (Prueba Simulada)
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-8 animate-slide-up pt-4">
+                            <div className="bg-white rounded-[48px] p-10 text-center space-y-6 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+                                <div className="w-24 h-24 bg-blue-100 rounded-[32px] flex items-center justify-center mx-auto relative z-10 text-blue-600">
+                                    <Package className="w-12 h-12" />
+                                </div>
+                                <div className="relative z-10">
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-tight mb-2 px-2">
+                                        {scannedResult.name}
+                                    </h2>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 italic">
+                                        EAN: {scannedResult.barcode}
+                                    </span>
+                                </div>
+                            </div>
 
-                                        <div className="bg-white p-6 rounded-[32px] border-2 border-blue-100 shadow-sm space-y-4">
-                                            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center">Simulador para Pruebas</p>
-                                            <button
-                                                onClick={() => handleScanSuccess('12345')}
-                                                className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center space-x-3"
-                                            >
-                                                <Barcode className="w-6 h-6" />
-                                                <span>SIMULAR COCA-COLA (12345)</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {scannedProduct && (
-                                    <div className="space-y-8 animate-in zoom-in-95 fade-in duration-500">
-                                        <div className="bg-white p-8 rounded-[48px] shadow-2xl border border-blue-50 flex flex-col items-center text-center space-y-6">
-                                            <div className="w-56 h-56 bg-gradient-to-tr from-slate-50 to-white rounded-[40px] flex items-center justify-center p-8 border-2 border-slate-100 shadow-inner relative group">
-                                                <img
-                                                    src={scannedProduct.image}
-                                                    alt={scannedProduct.name}
-                                                    className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-110"
-                                                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1540340061722-9293d5163008?w=400'; }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <span className="inline-block px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest mb-3 shadow-md shadow-blue-200">{scannedProduct.category}</span>
-                                                <h3 className="text-3xl font-black text-slate-900 leading-tight uppercase tracking-tight">{scannedProduct.name}</h3>
-                                                <p className="text-xs font-bold text-slate-400 mt-2 font-mono bg-slate-100 px-3 py-1 rounded-lg inline-block">CODE: {scannedProduct.barcode}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white p-8 rounded-[48px] shadow-xl border border-slate-100 space-y-4">
-                                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest block text-center">CANTIDAD A SUMAR</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="number"
-                                                    inputMode="decimal"
-                                                    value={amount}
-                                                    onChange={(e) => setAmount(e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-full bg-slate-50 border-4 border-slate-100 focus:border-slate-900 rounded-[32px] p-8 text-center text-8xl font-black outline-none transition-all shadow-inner text-slate-900 placeholder:text-slate-200"
-                                                    autoFocus
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
+                            <div className="space-y-6">
+                                <label className="block text-center text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Cantidad a sumar</label>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    autoFocus
+                                    className="w-full bg-slate-800 border-2 border-white/5 rounded-[40px] py-10 text-center text-7xl font-black text-white focus:border-blue-500 focus:ring-8 focus:ring-blue-500/10 outline-none transition-all placeholder:text-white/5 shadow-inner"
+                                    placeholder="0"
+                                    value={addAmount}
+                                    onChange={(e) => setAddAmount(e.target.value)}
+                                />
+                                <button
+                                    onClick={() => setScannedResult(null)}
+                                    className="w-full text-white/40 font-black text-[10px] uppercase tracking-widest py-4 bg-white/5 rounded-2xl active:bg-white/10 transition-colors"
+                                >
+                                    Escanear otro producto
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </main>
 
-                {!showSuccess && scannedProduct && (
-                    <div className="p-4 sm:p-6 border-t border-slate-100 bg-white fixed bottom-0 inset-x-0 z-[110]">
-                        <div className="max-w-md mx-auto">
-                            <button
-                                onClick={handleSave}
-                                disabled={!amount || isSaving}
-                                className="w-full bg-slate-900 text-white font-black py-6 rounded-[32px] text-xl shadow-2xl active:scale-95 transition-all disabled:opacity-30"
-                            >
-                                {isSaving ? (
-                                    <RefreshCcw className="w-8 h-8 animate-spin mx-auto" />
-                                ) : (
-                                    <span>CONFIRMAR INGRESO</span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                <footer className="fixed bottom-0 inset-x-0 p-8 bg-slate-900/90 backdrop-blur-xl border-t border-white/5 z-50">
+                    <button
+                        onClick={handleSaveEntry}
+                        disabled={!scannedResult || !addAmount || isSaving}
+                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black py-7 rounded-[32px] shadow-2xl flex items-center justify-center space-x-3 active:scale-[0.98] transition-all text-xl tracking-tight"
+                    >
+                        {isSaving ? (
+                            <div className="w-7 h-7 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                            <>
+                                <CheckCircle2 className="w-7 h-7" />
+                                <span>CONFIRMAR INGRESO</span>
+                            </>
+                        )}
+                    </button>
+                </footer>
             </div>
         );
     }
 
-    // List View
     return (
-        <div className="min-h-screen bg-white flex flex-col relative w-full overflow-x-hidden">
-            <header className="bg-white border-b border-slate-200 p-4 sticky top-0 z-10 w-full shadow-sm">
-                <div className="max-w-xl mx-auto flex items-center">
-                    <button onClick={() => navigate('/')} className="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-full">
-                        <ArrowLeft className="w-6 h-6" />
-                    </button>
-                    <h1 className="ml-2 text-xl font-black text-slate-900 uppercase">ALMACÉN CENTRAL</h1>
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+            <header className="bg-white px-6 pt-10 pb-8 border-b border-slate-100 rounded-b-[48px] shadow-sm flex items-center space-x-6 relative z-10">
+                <button
+                    onClick={() => navigate('/')}
+                    className="p-4 bg-slate-50 text-slate-400 rounded-2xl active:scale-95 transition-all border border-slate-100"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-1">Almacén Central</p>
+                    <h1 className="text-3xl font-black text-slate-900 leading-none">Inventario</h1>
                 </div>
             </header>
 
-            <main className="flex-1 p-4 max-w-xl mx-auto w-full space-y-6 pb-28">
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <main className="flex-1 flex flex-col px-6 pt-8 pb-32 overflow-y-auto space-y-8">
+                <div className="relative group">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <input
-                        type="text"
+                        className="w-full bg-white border border-slate-200 rounded-[30px] py-5 pl-14 pr-6 text-slate-900 font-bold focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 shadow-sm"
                         placeholder="Buscar mercancía..."
-                        className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/20 outline-none shadow-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                <div className="space-y-3">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Existencias Actuales</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between px-3">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Existencias Actuales</h2>
+                        <div className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                            <span className="text-[10px] font-black uppercase">{filteredInventory.length} SKUs</span>
+                        </div>
+                    </div>
 
                     {loading ? (
-                        <div className="py-20 text-center">
-                            <RefreshCcw className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
-                            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Cargando Almacén...</p>
-                        </div>
-                    ) : fetchError ? (
-                        <div className="bg-red-50 p-8 rounded-[32px] border-2 border-red-100 text-center space-y-4">
-                            <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-                            <p className="text-red-900 font-black uppercase text-xs">{fetchError}</p>
-                            <button onClick={fetchInventory} className="bg-red-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Reintentar</button>
-                        </div>
-                    ) : filteredInventory.length === 0 ? (
-                        <div className="bg-slate-50 p-12 rounded-[40px] border-2 border-dashed border-slate-200 text-center space-y-4">
-                            <Package className="w-16 h-16 text-slate-200 mx-auto" />
-                            <div>
-                                <h4 className="text-slate-900 font-black uppercase text-sm">Almacén Vacío</h4>
-                                <p className="text-slate-400 text-xs font-bold mt-1">Usa el botón de abajo para agregar mercancía.</p>
-                            </div>
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-white rounded-[40px] animate-pulse border border-slate-100"></div>)}
                         </div>
                     ) : (
-                        <div className="grid gap-3">
-                            {filteredInventory.map((item) => (
-                                <div key={item.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:border-blue-100 transition-colors">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-50">
-                                            <Package className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-900 text-base">{item.name}</h4>
-                                            <span className="text-[10px] text-slate-300 font-mono tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis block max-w-[150px]">
-                                                {item.barcode || 'N/A'}
-                                            </span>
-                                        </div>
+                        <div className="grid gap-4">
+                            {filteredInventory.map(item => (
+                                <div key={item.id} className="bg-white p-6 rounded-[40px] border border-slate-100 shadow-sm flex items-center group active:scale-[0.98] transition-all hover:shadow-xl hover:shadow-slate-200/50">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-[28px] flex items-center justify-center mr-5 group-hover:bg-blue-50 transition-colors">
+                                        <Package className="w-7 h-7 text-slate-300 group-hover:text-blue-500 transition-colors" />
                                     </div>
-                                    <div className="bg-slate-900 text-white min-w-[60px] h-12 flex items-center justify-center rounded-2xl shadow-inner px-3">
-                                        <span className="text-xl font-black">{item.quantity}</span>
+                                    <div className="flex-1 min-w-0 pr-4">
+                                        <p className="font-black text-slate-900 truncate text-lg uppercase tracking-tight leading-tight mb-1">
+                                            {item.name}
+                                        </p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 inline-block px-2 py-1 rounded-md border border-slate-100 italic">
+                                            {item.barcode}
+                                        </p>
+                                    </div>
+                                    <div className="text-right pl-4 border-l border-slate-50">
+                                        <p className={`text-2xl font-black ${item.quantity < 5 ? 'text-red-500' : 'text-slate-900'}`}>
+                                            {item.quantity}
+                                        </p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">unidades</p>
                                     </div>
                                 </div>
                             ))}
@@ -338,18 +289,14 @@ const WarehouseInventory = () => {
                 </div>
             </main>
 
-            {/* FIXED BOTTOM ACTION BUTTON */}
-            <div className="fixed bottom-0 inset-x-0 p-4 bg-white/95 backdrop-blur-sm border-t border-slate-100 z-[90]">
-                <div className="max-w-xl mx-auto px-2">
-                    <button
-                        onClick={startEntryFlow}
-                        type="button"
-                        className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl active:scale-[0.98] transition-all flex items-center justify-center space-x-3 text-lg"
-                    >
-                        <Camera className="w-6 h-6" />
-                        <span>AGREGAR MERCANCÍA</span>
-                    </button>
-                </div>
+            <div className="fixed bottom-0 inset-x-0 p-8 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-40">
+                <button
+                    onClick={() => setShowEntryFlow(true)}
+                    className="w-full bg-slate-900 text-white font-black py-7 rounded-[32px] shadow-2xl shadow-slate-900/40 active:scale-[0.98] transition-all flex items-center justify-center space-x-3 text-lg tracking-tight"
+                >
+                    <Camera className="w-6 h-6" />
+                    <span className="uppercase">INGRESAR MERCANCÍA</span>
+                </button>
             </div>
         </div>
     );

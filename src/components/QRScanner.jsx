@@ -36,13 +36,10 @@ const QRScanner = () => {
                             navigate(`/machine/${machineId}`);
                         });
                     },
-                    (errorMessage) => {
-                        // Suppress scanning noise
-                    }
+                    (errorMessage) => { }
                 );
             } catch (err) {
-                console.error("Camera access failed", err);
-                setScannerError("Permisos de cámara denegados o no detectada.");
+                setScannerError("Permisos de cámara denegados.");
                 setIsScanning(false);
             }
         };
@@ -58,9 +55,7 @@ const QRScanner = () => {
 
     const handleManualSubmit = (e) => {
         e.preventDefault();
-        if (manualId.trim()) {
-            navigate(`/machine/${manualId.trim()}`);
-        }
+        if (manualId.trim()) navigate(`/machine/${manualId.trim()}`);
     };
 
     const [machines, setMachines] = useState([]);
@@ -76,97 +71,91 @@ const QRScanner = () => {
     }, [user]);
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans">
-            {/* Dark Header - 100% Opaque */}
-            <header className="p-6 flex items-center shrink-0 bg-slate-900 sticky top-0 z-30 border-b border-white/10">
-                <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full mr-2 transition-colors">
-                    <ArrowLeft className="w-6 h-6" />
-                </button>
-                <div className="flex flex-col">
-                    <h1 className="text-lg font-bold">Escáner de Ruta</h1>
-                    <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{user?.name}</span>
+        <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative overflow-hidden">
+            {/* Ambient Background */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[120px] opacity-20 -mr-32 -mt-32"></div>
+
+            <header className="px-6 py-8 flex items-center justify-between sticky top-0 z-30 bg-slate-950/50 backdrop-blur-xl border-b border-white/5">
+                <div className="flex items-center space-x-4">
+                    <button onClick={() => navigate('/')} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all">
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h1 className="text-xl font-black uppercase tracking-tight">Escanear Ruta</h1>
+                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{user?.name}</p>
+                    </div>
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto p-6 space-y-10">
-                {/* Camera Container */}
-                <div className="w-full max-w-sm mx-auto">
-                    <div className="bg-black rounded-3xl overflow-hidden shadow-2xl relative aspect-square border border-white/10 ring-8 ring-white/5">
+            <main className="flex-1 p-6 flex flex-col items-center justify-center space-y-12 pb-32">
+                {/* Scanner Interface */}
+                <div className="w-full max-w-sm relative">
+                    <div className="aspect-square bg-black rounded-[48px] overflow-hidden border border-white/10 shadow-[0_0_80px_-20px_rgba(37,99,235,0.3)] relative">
                         <div id="reader" className="w-full h-full"></div>
 
+                        {/* Custom Overlay */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            <div className="absolute inset-8 border-2 border-white/20 rounded-[32px]">
+                                <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
+                                <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
+                                <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
+                                <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
+                            </div>
+                        </div>
+
                         {scannerError && (
-                            <div className="absolute inset-0 bg-slate-800/95 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95">
-                                <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-6">
-                                    <Camera className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-lg font-bold mb-2">Error de Cámara</h3>
-                                <p className="text-sm text-slate-400 mb-8">{scannerError}</p>
+                            <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-8 text-center animate-in fade-in">
+                                <Camera className="w-12 h-12 text-red-500 mb-4" />
+                                <p className="font-bold text-slate-300 mb-6">{scannerError}</p>
                                 <button
                                     onClick={() => window.location.reload()}
-                                    className="w-full bg-white text-slate-900 px-6 py-4 rounded-2xl font-black flex items-center justify-center space-x-2 active:scale-95 transition-all"
+                                    className="px-6 py-3 bg-white text-slate-950 rounded-xl font-black text-xs uppercase"
                                 >
-                                    <RefreshCw className="w-4 h-4" />
-                                    <span>Reintentar Acceso</span>
+                                    Reintentar
                                 </button>
                             </div>
                         )}
+                    </div>
 
-                        {/* Scanner Overlay UI */}
-                        {!scannerError && isScanning && (
-                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                <div className="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
-                                    <div className="absolute inset-0 border-4 border-blue-500 rounded-3xl animate-pulse"></div>
-                                </div>
-                            </div>
-                        )}
+                    <div className="mt-8 text-center">
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] animate-pulse">Alinea el código QR</p>
                     </div>
                 </div>
 
-                {/* Manual Entry Fallback */}
-                <div className="w-full max-w-sm mx-auto space-y-6">
-                    <div className="flex items-center space-x-4">
-                        <div className="h-px bg-white/10 flex-1"></div>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">O ingresa manual</span>
-                        <div className="h-px bg-white/10 flex-1"></div>
-                    </div>
-
-                    <form onSubmit={handleManualSubmit} className="relative">
-                        <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                {/* Manual Input Section */}
+                <div className="w-full max-w-sm space-y-4">
+                    <form onSubmit={handleManualSubmit} className="relative group">
+                        <Hash className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                         <input
-                            type="text"
-                            inputMode="decimal"
-                            className="w-full bg-slate-800/50 border border-white/10 rounded-2xl py-5 pl-12 pr-16 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 font-bold text-lg transition-all"
-                            placeholder="ID de la máquina..."
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 pl-14 pr-20 font-black text-lg focus:bg-white/10 focus:border-blue-500 transition-all outline-none"
+                            placeholder="ID DE MÁQUINA"
                             value={manualId}
                             onChange={(e) => setManualId(e.target.value)}
                         />
-                        <button
-                            type="submit"
-                            className="absolute right-2 top-2 bottom-2 bg-blue-600 px-4 rounded-xl font-bold flex items-center justify-center active:bg-blue-700 transition-colors"
-                        >
-                            <ChevronRight className="w-5 h-5" />
+                        <button className="absolute right-3 top-3 bottom-3 bg-blue-600 px-5 rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all">
+                            IR
                         </button>
                     </form>
                 </div>
 
-                {/* Debug / Development Quick Access */}
-                <div className="w-full max-w-sm mx-auto pt-4">
-                    <div className="bg-slate-800/20 rounded-3xl p-6 border border-white/5">
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Acceso Rápido (Demo)</h4>
+                {/* Quick Selection */}
+                <div className="w-full max-w-sm">
+                    <div className="bg-white/5 p-6 rounded-[32px] border border-white/5">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 px-2">Selección Rápida</p>
                         <div className="space-y-2">
-                            {machines.map(m => (
+                            {machines.slice(0, 3).map(m => (
                                 <button
                                     key={m.id}
                                     onClick={() => navigate(`/machine/${m.id}`)}
-                                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors text-left group"
+                                    className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all text-left"
                                 >
-                                    <div className="flex items-center">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mr-3 group-hover:bg-blue-500/20">
-                                            <Coffee className="w-4 h-4 text-blue-500" />
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                                            <Coffee className="w-5 h-5 text-blue-500" />
                                         </div>
-                                        <span className="text-sm font-bold text-slate-300">{m.name}</span>
+                                        <span className="font-bold text-sm">{m.name}</span>
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                                    <ChevronRight className="w-4 h-4 text-slate-500" />
                                 </button>
                             ))}
                         </div>
