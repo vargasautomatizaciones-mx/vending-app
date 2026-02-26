@@ -107,7 +107,7 @@ const MainLayout = ({ children }) => {
             {/* Main Content Area */}
             <main className="flex-1 md:ml-72 pb-24 md:pb-8 flex flex-col min-h-screen">
                 {/* Mobile Top Header */}
-                <header className="md:hidden sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 p-6 flex items-center justify-between z-20">
+                <header className="md:hidden sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 p-6 flex items-center justify-between z-10">
                     <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
                             <Coffee className="w-5 h-5 text-white" />

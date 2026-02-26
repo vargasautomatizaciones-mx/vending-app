@@ -9,8 +9,10 @@ import {
     X,
     Save,
     Coffee,
+    MapPin,
     Search
 } from 'lucide-react';
+
 import { QRCodeSVG } from 'qrcode.react';
 import { machineService } from '../services/machineService';
 import { useAuth } from '../context/AuthContext';
@@ -66,7 +68,16 @@ const ManageMachines = () => {
     };
 
     const handleSave = async () => {
-        if (!formData.name || !formData.location) return;
+        if (!formData.name || !formData.location) {
+            alert('El nombre y la ubicación son obligatorios.');
+            return;
+        }
+        // Validate companyId - must be a valid UUID, not 'master' or null
+        const isValidUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        if (!user?.companyId || !isValidUUID(user.companyId)) {
+            alert('Error: Tu cuenta no tiene una empresa asignada. Contacta al SuperAdmin para vincular tu usuario a una empresa.');
+            return;
+        }
         try {
             if (editingMachine) {
                 await machineService.updateMachine(editingMachine.id, formData);
@@ -77,9 +88,11 @@ const ManageMachines = () => {
             setIsEditModalOpen(false);
         } catch (error) {
             console.error('Error saving machine:', error);
-            alert('Error al guardar la máquina: ' + error.message);
+            const detail = error?.details || error?.message || 'Error desconocido';
+            alert('Error al guardar la máquina: ' + detail);
         }
     };
+
 
     const handleDelete = async (id) => {
         if (window.confirm('¿Estás seguro de eliminar esta máquina? Esta acción no se puede deshacer.')) {
