@@ -14,7 +14,10 @@ export const historyService = {
             console.error('Error fetching visits:', error);
             return [];
         }
-        return data;
+        return data.map(v => ({
+            ...v,
+            machineName: v.machines?.name || 'Unbekannt'
+        }));
     },
 
     addVisit: async (visitData, companyId) => {
@@ -101,5 +104,81 @@ export const historyService = {
         });
 
         return alerts;
+    },
+
+    getReportsOverview: async (companyId) => {
+        try {
+            const { data: visits } = await supabase
+                .from(VISITS_TABLE)
+                .select('total_sales, timestamp')
+                .eq('company_id', companyId);
+
+            const { data: machines } = await supabase
+                .from(MACHINES_TABLE)
+                .select('id, name, location, last_reading')
+                .eq('company_id', companyId);
+
+            const totalSales = visits?.reduce((sum, v) => sum + (v.total_sales || 0), 0) || 0;
+            const activeMachines = machines?.length || 0;
+
+            // Calculate growth (mock comparison for now, or could fetch last month)
+            const growth = '+12.4%';
+
+            return {
+                totalSales,
+                activeMachines,
+                growth,
+                machinePerformance: machines?.map(m => {
+                    const machineSales = visits
+                        ?.filter(v => v.machine_id === m.id)
+                        .reduce((sum, v) => sum + (v.total_sales || 0), 0) || 0;
+                    return {
+                        name: m.name,
+                        location: m.location,
+                        sales: machineSales,
+                        budget: 1000 // Default budget
+                    };
+                }).sort((a, b) => b.sales - a.sales).slice(0, 3) || []
+            };
+        } catch (error) {
+            console.error('Error in getReportsOverview:', error);
+            return null;
+        }
+    },
+
+    getLogisticsStatus: async (companyId) => {
+        try {
+            const { data: inventory } = await supabase
+                .from('inventory')
+                .select('*')
+                .eq('company_id', companyId);
+
+            if (!inventory) return [];
+
+            return inventory.map(item => {
+                let status = 'Óptimo';
+                let color = 'bg-emerald-500';
+
+                // Simple thresholds
+                if (item.quantity < 20) {
+                    status = 'Crítico';
+                    color = 'bg-red-500';
+                } else if (item.quantity < 50) {
+                    status = 'Alerta';
+                    color = 'bg-amber-500';
+                }
+
+                return {
+                    item: item.name,
+                    level: Math.round(Math.min(100, item.quantity)), // Assuming max 100 for simplicity in this dashboard
+                    status,
+                    color,
+                    note: status === 'Crítico' ? 'Requerido urgente' : status === 'Alerta' ? 'Revisar pronto' : 'Autosuficiente'
+                };
+            });
+        } catch (error) {
+            console.error('Error in getLogisticsStatus:', error);
+            return [];
+        }
     }
 };

@@ -13,25 +13,72 @@ import {
 
 const OwnerReports = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const [loading, setLoading] = React.useState(true);
+    const [stats, setStats] = React.useState([]);
+    const [machinePerformance, setMachinePerformance] = React.useState([]);
+    const [criticalInsumos, setCriticalInsumos] = React.useState([]);
 
-    const stats = [
-        { label: 'Unidades Operativas', value: '12', change: 'En Línea', isUp: true, icon: Coffee, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Ventas del Periodo', value: '$14,580', change: '+12.4%', isUp: true, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Tasa de Conversión', value: '94.2%', change: '+3.1%', isUp: true, icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    ];
+    React.useEffect(() => {
+        const fetchData = async () => {
+            if (!user?.companyId) return;
+            setLoading(true);
+            try {
+                const [overview, logistics] = await Promise.all([
+                    historyService.getReportsOverview(user.companyId),
+                    historyService.getLogisticsStatus(user.companyId)
+                ]);
 
-    const machinePerformance = [
-        { name: 'Coffee Alpha V1', location: 'Corporativo Piso 5', sales: 342, budget: 400, color: 'bg-blue-500' },
-        { name: 'Brew Master 3000', location: 'Recepción Principal', sales: 289, budget: 350, color: 'bg-indigo-500' },
-        { name: 'Latte Express MX', location: 'Club de Raqueta', sales: 156, budget: 200, color: 'bg-emerald-500' },
-    ];
+                if (overview) {
+                    setStats([
+                        {
+                            label: 'Unidades Operativas',
+                            value: overview.activeMachines.toString(),
+                            change: 'En Línea',
+                            isUp: true,
+                            icon: Coffee,
+                            color: 'text-blue-600',
+                            bg: 'bg-blue-50'
+                        },
+                        {
+                            label: 'Ventas Totales',
+                            value: `$${overview.totalSales.toLocaleString()}`,
+                            change: overview.growth,
+                            isUp: true,
+                            icon: TrendingUp,
+                            color: 'text-emerald-600',
+                            bg: 'bg-emerald-50'
+                        },
+                        {
+                            label: 'Tasa de Conversión',
+                            value: '94.2%',
+                            change: '+3.1%',
+                            isUp: true,
+                            icon: BarChart3,
+                            color: 'text-indigo-600',
+                            bg: 'bg-indigo-50'
+                        },
+                    ]);
+                    setMachinePerformance(overview.machinePerformance);
+                }
+                setCriticalInsumos(logistics || []);
+            } catch (error) {
+                console.error('Error loading reports:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [user]);
 
-    const criticalInsumos = [
-        { item: 'Grano Arábica', level: 12, status: 'Crítico', color: 'bg-red-500', note: 'Requerido en 24h' },
-        { item: 'Vasos 8oz', level: 85, status: 'Óptimo', color: 'bg-emerald-500', note: 'Autosuficiente' },
-        { item: 'Endulzante Stevia', level: 45, status: 'Alerta', color: 'bg-amber-500', note: 'Revisar stock' },
-        { item: 'Paletinas Madera', level: 92, status: 'Óptimo', color: 'bg-emerald-500', note: 'Autosuficiente' }
-    ];
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+                <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Generando Inteligencia de Negocio...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-12 animate-in fade-in duration-700">

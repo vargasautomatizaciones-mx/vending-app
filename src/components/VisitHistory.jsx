@@ -102,20 +102,20 @@ const VisitHistory = () => {
                                         </div>
                                         <div className="space-y-1">
                                             <h4 className="font-black text-slate-900 uppercase tracking-tight text-base leading-none group-hover:text-blue-600 transition-colors">
-                                                {v.machineName}
+                                                {v.machineName || 'Máquina desconocida'}
                                             </h4>
                                             <div className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none pt-1">
                                                 <Calendar className="w-3 h-3 mr-2 text-blue-500" />
-                                                {v.timestamp}
+                                                {new Date(v.timestamp).toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-6 flex-1 max-w-lg lg:border-x lg:border-slate-50 lg:px-10">
                                         {[
-                                            { l: 'Cups', v: v.insumos.vasos, unit: 'u' },
-                                            { l: 'Coffee', v: v.insumos.cafe, unit: 'g' },
-                                            { l: 'Sugar', v: v.insumos.azucar, unit: 'g' }
+                                            { l: 'Cups', v: v.insumos?.vasos || 0, unit: 'u' },
+                                            { l: 'Coffee', v: v.insumos?.cafe || 0, unit: 'g' },
+                                            { l: 'Sugar', v: v.insumos?.azucar || 0, unit: 'g' }
                                         ].map((x, i) => (
                                             <div key={i} className="space-y-1">
                                                 <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{x.l}</p>
